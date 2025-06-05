@@ -106,7 +106,7 @@ public isolated client class Provider {
         ai:FunctionCall[] toolCalls = from OllamaToolCall toolCall in ollamaToolCalls
             select {
                 name: toolCall.'function.name,
-                arguments: toolCall.'function.arguments.toJsonString()
+                arguments: toolCall.'function.arguments
             };
         return {role: ai:ASSISTANT, toolCalls};
     }
