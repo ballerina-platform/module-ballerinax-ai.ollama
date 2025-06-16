@@ -22,7 +22,7 @@ const DEFAULT_OLLAMA_SERVICE_URL = "http://localhost:11434";
 const TOOL_ROLE = "tool";
 
 # Provider represents a client for interacting with an Ollama language models.
-public isolated client class Provider {
+public isolated client class ModelProvider {
     *ai:ModelProvider;
     private final http:Client ollamaClient;
     private final string modelType;
