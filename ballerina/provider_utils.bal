@@ -82,8 +82,9 @@ isolated function getGetResultsTool(map<json> parameters) returns map<json>[]|er
             'type: FUNCTION,
             'function: {
                 name: GET_RESULTS_TOOL,
-                parameters: check parameters.cloneWithType(),
-                description: "Tool to call with the response from a large language model (LLM) for a user prompt."
+                parameters: parameters,
+                description: string `Required Tool to call with the response from a large language model (LLM) for a user prompt. 
+                            This tool is mandatory for the LLM to return a response.`
             }
         }
     ];
