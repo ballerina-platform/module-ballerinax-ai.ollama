@@ -17,7 +17,7 @@
 import ballerina/ai;
 import ballerina/http;
 
-type SchemaResponse record {|
+type ResponseSchema record {|
     map<json> schema;
     boolean isOriginallyJsonObject = true;
 |};
@@ -31,7 +31,7 @@ const GET_RESULTS_TOOL = "getResults";
 const FUNCTION = "function";
 const NO_RELEVANT_RESPONSE_FROM_THE_LLM = "No relevant response from the LLM";
 
-isolated function generateJsonObjectSchema(map<json> schema) returns SchemaResponse {
+isolated function generateJsonObjectSchema(map<json> schema) returns ResponseSchema {
     string[] supportedMetaDataFields = ["$schema", "$id", "$anchor", "$comment", "title", "description"];
 
     if schema["type"] == "object" {
@@ -70,14 +70,14 @@ isolated function parseResponseAsType(string resp,
     return result;
 }
 
-isolated function getExpectedResponseSchema(typedesc<anydata> expectedResponseTypedesc) returns SchemaResponse|ai:Error {
+isolated function getExpectedResponseSchema(typedesc<anydata> expectedResponseTypedesc) returns ResponseSchema|ai:Error {
     // Restricted at compile-time for now.
     typedesc<json> td = checkpanic expectedResponseTypedesc.ensureType();
     return generateJsonObjectSchema(check generateJsonSchemaForTypedescAsJson(td));
 }
 
-isolated function getGetResultsTool(map<json> parameters) returns map<json>[]|error {
-    return [
+isolated function getGetResultsTool(map<json> parameters) returns map<json>[]|error =>
+    [
         {
             'type: FUNCTION,
             'function: {
@@ -88,27 +88,26 @@ isolated function getGetResultsTool(map<json> parameters) returns map<json>[]|er
             }
         }
     ];
-}
 
-isolated function genarateChatCreationContent(ai:Prompt prompt) returns string|ai:Error {
+isolated function generateChatCreationContent(ai:Prompt prompt) returns string|ai:Error {
     string[] & readonly strings = prompt.strings;
-    string str = strings[0];
     anydata[] insertions = prompt.insertions;
+    string promptStr = strings[0];
     foreach int i in 0 ..< insertions.length() {
+        string str = strings[i + 1];
         anydata insertion = insertions[i];
-        string promptStr = strings[i + 1];
 
         if insertion is ai:TextDocument {
-            str += insertion.content + " " + promptStr;
+            promptStr += insertion.content + " " + str;
             continue;
         }
 
         if insertion is ai:TextDocument[] {
             foreach ai:TextDocument doc in insertion {
-                str += doc.content  + " ";
+                promptStr += doc.content  + " ";
                 
             }
-            str += promptStr;
+            promptStr += str;
             continue;
         }
 
@@ -116,14 +115,19 @@ isolated function genarateChatCreationContent(ai:Prompt prompt) returns string|a
             return error ai:Error("Only Text Documents are currently supported.");
         }
 
-        str += insertion.toString() + promptStr;
+        promptStr += insertion.toString() + str;
     }
-    return str.trim();
+    promptStr += addToolDirective();
+    return promptStr.trim();
+}
+
+isolated function addToolDirective() returns string {
+    return "\nYou must call the `getResults` tool to obtain the correct answer.";
 }
 
 isolated function handleParseResponseError(error chatResponseError) returns error {
-    if chatResponseError.message().includes(JSON_CONVERSION_ERROR)
-            || chatResponseError.message().includes(CONVERSION_ERROR) {
+    string msg = chatResponseError.message();
+    if msg.includes(JSON_CONVERSION_ERROR) || msg.includes(CONVERSION_ERROR) {
         return error(string `${ERROR_MESSAGE}`, detail = chatResponseError);
     }
     return chatResponseError;
@@ -132,11 +136,11 @@ isolated function handleParseResponseError(error chatResponseError) returns erro
 isolated function generateLlmResponse(http:Client llmClient, string modelType,
         readonly & map<json> modleParameters, ai:Prompt prompt, 
         typedesc<json> expectedResponseTypedesc) returns anydata|ai:Error {
-    string content = check genarateChatCreationContent(prompt);
-    SchemaResponse schemaResponse = check getExpectedResponseSchema(expectedResponseTypedesc);
-    map<json>[]|error tools = getGetResultsTool(schemaResponse.schema);
+    string content = check generateChatCreationContent(prompt);
+    ResponseSchema ResponseSchema = check getExpectedResponseSchema(expectedResponseTypedesc);
+    map<json>[]|error tools = getGetResultsTool(ResponseSchema.schema);
     if tools is error {
-        return error ai:LlmError("Error while generating the tool: " + tools.message());
+        return error("Error while generating the tool: " + tools.message());
     }
 
     map<json> request = {
@@ -154,29 +158,29 @@ isolated function generateLlmResponse(http:Client llmClient, string modelType,
 
     OllamaResponse|error response = llmClient->/api/chat.post(request);
     if response is error {
-        return error ai:LlmConnectionError("Error while connecting to ollama", response);
+        return error("Error while connecting to ollama", response);
     }
 
     OllamaToolCall[]? toolCalls = response.message?.tool_calls;
 
     if toolCalls is () || toolCalls.length() == 0 {
-        return error ai:LlmError(NO_RELEVANT_RESPONSE_FROM_THE_LLM);
+        return error(NO_RELEVANT_RESPONSE_FROM_THE_LLM);
     }
 
     OllamaToolCall tool = toolCalls[0];
     map<json> arguments = tool.'function.arguments;
 
     anydata|error res = parseResponseAsType(arguments.toJsonString(), expectedResponseTypedesc,
-            schemaResponse.isOriginallyJsonObject);
+            ResponseSchema.isOriginallyJsonObject);
     if res is error {
-        return error ai:LlmInvalidGenerationError(string `Invalid value returned from the LLM Client, expected: '${
+        return error(string `Invalid value returned from the LLM Client, expected: '${
             expectedResponseTypedesc.toBalString()}', found '${res.toBalString()}'`);
     }
 
     anydata|error result = res.ensureType(expectedResponseTypedesc);
 
     if result is error {
-        return error ai:LlmInvalidGenerationError(string `Invalid value returned from the LLM Client, expected: '${
+        return error(string `Invalid value returned from the LLM Client, expected: '${
             expectedResponseTypedesc.toBalString()}', found '${(typeof response).toBalString()}'`);
     }
     return result;

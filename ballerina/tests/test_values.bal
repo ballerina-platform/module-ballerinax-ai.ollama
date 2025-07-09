@@ -47,41 +47,41 @@ const review = "{\"rating\": 8, \"comment\": \"Talks about essential aspects of 
 
 final string expectedPromptStringForRateBlog = string `Rate this blog out of 10.
         Title: ${blog1.title}
-        Content: ${blog1.content}`;
+        Content: ${blog1.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog2 = string `Please rate this blog out of 10.
         Title: ${blog2.title}
-        Content: ${blog2.content}`;
+        Content: ${blog2.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
-const expectedPromptStringForRateBlog3 = string `What is 1 + 1?`;
+const expectedPromptStringForRateBlog3 = string `What is 1 + 1?${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
-const expectedPromptStringForRateBlog4 = string `Tell me name and the age of the top 10 world class cricketers`;
+const expectedPromptStringForRateBlog4 = string `Tell me name and the age of the top 10 world class cricketers${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog5 =
-        string `How would you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .`;
+        string `How would you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog6 =
-        string `How would you rate this blog out of 10. Title: ${blog1.title} Content: ${blog1.content}`;
+        string `How would you rate this blog out of 10. Title: ${blog1.title} Content: ${blog1.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog7 =
         string `Please rate this blogs out of 10.
-        [{Title: ${blog1.title}, Content: ${blog1.content}}, {Title: ${blog2.title}, Content: ${blog2.content}}]`;
+        [{Title: ${blog1.title}, Content: ${blog1.content}}, {Title: ${blog2.title}, Content: ${blog2.content}}]${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog8 =
-    string `How would you rate this text blog out of 10, Title: ${blog1.title} Content: ${blog1.content} .`;
+    string `How would you rate this text blog out of 10, Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog9 = string 
-    `How would you rate this text blogs out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!`;
+    `How would you rate this text blogs out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog10 = string `Evaluate this blogs out of 10.
         Title: ${blog1.title}
         Content: ${blog1.content}
 
         Title: ${blog1.title}
-        Content: ${blog1.content}`;
+        Content: ${blog1.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog11 =
-        string `How do you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .`;
+        string `How do you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 const expectedPromptStringForBalProgram = string `What's the output of the Ballerina code below?
 
@@ -93,9 +93,9 @@ const expectedPromptStringForBalProgram = string `What's the output of the Balle
         int y = 20;
         io:println(x + y);
     }
-    ${"```"}`;
+    ${"```"}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
-const expectedPromptStringForCountry = string `Which country is known as the pearl of the Indian Ocean?`;
+const expectedPromptStringForCountry = string `Which country is known as the pearl of the Indian Ocean?${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 const expectedParameterSchemaStringForRateBlog =
     {"type": "object", "properties": {"result": {"type": "integer"}}};

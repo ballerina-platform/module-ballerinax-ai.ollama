@@ -43,7 +43,7 @@ public isolated client class Provider {
         http:ClientConfiguration clientConfig = {...connectionConfig};
         http:Client|error ollamaClient = new (serviceUrl, clientConfig);
         if ollamaClient is error {
-            return error ai:Error("Error while connecting to the model", ollamaClient);
+            return error("Error while connecting to the model", ollamaClient);
         }
         self.modleParameters = check getModelParameterMap(modleParameters);
         self.ollamaClient = ollamaClient;
@@ -62,7 +62,7 @@ public isolated client class Provider {
         json requestPayload = self.prepareRequestPayload(messages, tools, stop);
         OllamaResponse|error response = self.ollamaClient->/api/chat.post(requestPayload);
         if response is error {
-            return error ai:LlmConnectionError("Error while connecting to ollama", response);
+            return error("Error while connecting to ollama", response);
         }
         return self.mapOllamaResponseToAssistantMessage(response);
     }
@@ -129,6 +129,6 @@ isolated function getModelParameterMap(OllamaModelParameters modleParameters) re
         map<json> & readonly readonlyOptions = check options.cloneWithType();
         return readonlyOptions;
     } on fail error e {
-        return error ai:Error("Error while processing model parameters", e);
+        return error("Error while processing model parameters", e);
     }
 }

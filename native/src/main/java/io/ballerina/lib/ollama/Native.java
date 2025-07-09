@@ -15,6 +15,7 @@
  */
 package io.ballerina.lib.ai.ollama;
 
+import io.ballerina.runtime.api.Module;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
@@ -39,8 +40,12 @@ import static io.ballerina.runtime.api.creators.ValueCreator.createMapValue;
 public class Native {
     public static Object generateJsonSchemaForTypedescNative(BTypedesc td) {
         SchemaGenerationContext schemaGenerationContext = new SchemaGenerationContext();
-        Object schema = generateJsonSchemaForType(td.getDescribingType(), schemaGenerationContext);
-        return schemaGenerationContext.isSchemaGeneratedAtCompileTime ? schema : null;
+        try {
+            Object schema = generateJsonSchemaForType(td.getDescribingType(), schemaGenerationContext);
+            return schemaGenerationContext.isSchemaGeneratedAtCompileTime ? schema : null;
+        } catch (BError e) {
+            return createAIError(e.getErrorMessage());
+        }
     }
 
     private static Object generateJsonSchemaForType(Type t, SchemaGenerationContext schemaGenerationContext)
@@ -62,6 +67,11 @@ public class Native {
         BMap<BString, Object> schemaMap = createMapValue(TypeCreator.createMapType(PredefinedTypes.TYPE_JSON));
         schemaMap.put(StringUtils.fromString("type"), StringUtils.fromString(getStringRepresentation(type)));
         return schemaMap;
+    }
+
+    private static BError createAIError(BString message) {
+        return ErrorCreator.createError(new Module("ballerina", "ai", "1"),
+                "Error", message, null, null);
     }
 
     private static BMap<BString, Object> generateJsonSchemaForJson() {
