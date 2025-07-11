@@ -31,7 +31,7 @@ final ai:ModelProvider ollamaModel = check new ollama:ModelProvider("ollamaModel
 
 ### Step 4: Invoke chat completion
 
-```
+```ballerina
 ai:ChatMessage[] chatMessages = [{role: "user", content: "hi"}];
 ai:ChatAssistantMessage response = check ollamaModel->chat(chatMessages, tools = []);
 
