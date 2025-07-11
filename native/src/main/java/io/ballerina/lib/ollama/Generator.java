@@ -32,7 +32,7 @@ public class Generator {
     public static Object generate(Environment env, BObject modelProvider,
                                   BObject prompt, BTypedesc expectedResponseTypedesc) {
         return env.getRuntime().callFunction(
-                new Module("ballerinax", "ai.model.provider.ollama", "1"), "generateLlmResponse", null,
+                new Module("ballerinax", "ai.ollama", "1"), "generateLlmResponse", null,
                 modelProvider.get(StringUtils.fromString("ollamaClient")),
                 modelProvider.get(StringUtils.fromString("modelType")),
                 modelProvider.get(StringUtils.fromString("modleParameters")),

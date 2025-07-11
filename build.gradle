@@ -61,12 +61,12 @@ allprojects {
 def moduleVersion = project.version.replace("-SNAPSHOT", "")
 
 task build {
-    dependsOn(':ai.model.provider.ollama-compiler-plugin:build')
-    dependsOn(':ai.model.provider.ollama-native:build')
-    dependsOn(':ai.model.provider.ollama-ballerina:build')
+    dependsOn(':ai.ollama-compiler-plugin:build')
+    dependsOn(':ai.ollama-native:build')
+    dependsOn(':ai.ollama-ballerina:build')
 }
 
-tasks.findByPath(':ai.model.provider.ollama-ballerina:build').mustRunAfter(':ai.model.provider.ollama-native:build')
+tasks.findByPath(':ai.ollama-ballerina:build').mustRunAfter(':ai.ollama-native:build')
 
 release {
     buildTasks = ['build']

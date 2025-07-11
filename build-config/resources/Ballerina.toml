@@ -10,6 +10,6 @@ version = "@toml.version@"
 
 [[platform.java21.dependency]]
 groupId = "io.ballerina.lib"
-artifactId = "ai.model.provider.ollama-native"
+artifactId = "ai.ollama-native"
 version = "@toml.version@"
-path = "../native/build/libs/ai.model.provider.ollama-native-@project.version@.jar"
+path = "../native/build/libs/ai.ollama-native-@project.version@.jar"

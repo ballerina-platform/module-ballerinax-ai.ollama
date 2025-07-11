@@ -21,6 +21,9 @@ service /llm on new http:Listener(8080) {
     resource function post api/chat(map<json> payload)
                 returns OllamaResponse|error {
         test:assertEquals(payload.model, "llama2");
+        test:assertEquals(payload.options, {"mirostat":0, "mirostat_eta":0.1d, "mirostat_tau":5.0d, 
+                "num_ctx":2048, "repeat_last_n":64, "repeat_penalty":1.1d, "temperature":0.8d, "seed":11,
+                "num_predict":-1, "top_k":40, "top_p":0.9d, "min_p":0d});
         json[] messages = check payload.messages.ensureType();
         json message = messages[0];
 

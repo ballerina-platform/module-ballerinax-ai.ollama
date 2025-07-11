@@ -33,14 +33,14 @@ plugins {
 rootProject.name = 'module-ballerinax-ai.ollama'
 
 include ':checkstyle'
-include ':ai.model.provider.ollama-native'
-include ':ai.model.provider.ollama-ballerina'
-include ':ai.model.provider.ollama-compiler-plugin'
+include ':ai.ollama-native'
+include ':ai.ollama-ballerina'
+include ':ai.ollama-compiler-plugin'
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
-project(':ai.model.provider.ollama-native').projectDir = file("native")
-project(':ai.model.provider.ollama-ballerina').projectDir = file("ballerina")
-project(':ai.model.provider.ollama-compiler-plugin').projectDir = file('compiler-plugin')
+project(':ai.ollama-native').projectDir = file("native")
+project(':ai.ollama-ballerina').projectDir = file("ballerina")
+project(':ai.ollama-compiler-plugin').projectDir = file('compiler-plugin')
 
 gradleEnterprise {
     buildScan {
