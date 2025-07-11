@@ -17,6 +17,7 @@
 import ballerina/ai;
 import ballerina/data.jsondata;
 import ballerina/http;
+import ballerina/jballerina.java;
 
 const DEFAULT_OLLAMA_SERVICE_URL = "http://localhost:11434";
 const TOOL_ROLE = "tool";
@@ -42,7 +43,7 @@ public isolated client class Provider {
         http:ClientConfiguration clientConfig = {...connectionConfig};
         http:Client|error ollamaClient = new (serviceUrl, clientConfig);
         if ollamaClient is error {
-            return error ai:Error("Error while connecting to the model", ollamaClient);
+            return error("Error while connecting to the model", ollamaClient);
         }
         self.modleParameters = check getModelParameterMap(modleParameters);
         self.ollamaClient = ollamaClient;
@@ -61,10 +62,20 @@ public isolated client class Provider {
         json requestPayload = self.prepareRequestPayload(messages, tools, stop);
         OllamaResponse|error response = self.ollamaClient->/api/chat.post(requestPayload);
         if response is error {
-            return error ai:LlmConnectionError("Error while connecting to ollama", response);
+            return error("Error while connecting to ollama", response);
         }
         return self.mapOllamaResponseToAssistantMessage(response);
     }
+
+    # Sends a chat request to the model and generates a value that belongs to the type
+    # corresponding to the type descriptor argument.
+    # 
+    # + prompt - The prompt to use in the chat messages
+    # + td - Type descriptor specifying the expected return type format
+    # + return - Generates a value that belongs to the type, or an error if generation fails
+    isolated remote function generate(ai:Prompt prompt, typedesc<anydata> td = <>) returns td|ai:Error = @java:Method {
+        'class: "io.ballerina.lib.ai.ollama.Generator"
+    } external;
 
     private isolated function prepareRequestPayload(ai:ChatMessage[] messages, ai:ChatCompletionFunctions[] tools,
             string? stop) returns json {
@@ -118,6 +129,6 @@ isolated function getModelParameterMap(OllamaModelParameters modleParameters) re
         map<json> & readonly readonlyOptions = check options.cloneWithType();
         return readonlyOptions;
     } on fail error e {
-        return error ai:Error("Error while processing model parameters", e);
+        return error("Error while processing model parameters", e);
     }
 }
