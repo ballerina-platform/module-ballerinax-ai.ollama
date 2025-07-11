@@ -8,6 +8,9 @@ org = "ballerinax"
 repository = "https://github.com/ballerina-platform/module-ballerinax-ai.ollama"
 version = "1.0.0"
 
+[platform.java21]
+graalvmCompatible = true
+
 [[platform.java21.dependency]]
 groupId = "io.ballerina.lib"
 artifactId = "ai.ollama-native"
