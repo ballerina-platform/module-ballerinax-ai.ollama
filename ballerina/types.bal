@@ -177,3 +177,5 @@ type OllamaFunction record {
     string name;
     map<json> arguments;
 };
+
+const FUNCTION = "function";
