@@ -51,14 +51,14 @@ public isolated client class ModelProvider {
 
     # Sends a chat request to the Ollama model with the given messages and tools.
     #
-    # + messages - List of chat messages 
+    # + messages - List of chat messages or user message
     # + tools - Tool definitions to be used for the tool call
     # + stop - Stop sequence to stop the completion
     # + return - Function to be called, chat response or an error in-case of failures
-    isolated remote function chat(ai:ChatMessage[] messages, ai:ChatCompletionFunctions[] tools = [], string? stop = ())
-        returns ai:ChatAssistantMessage|ai:LlmError {
+    isolated remote function chat(ai:ChatMessage[]|ai:ChatUserMessage messages, ai:ChatCompletionFunctions[] tools = [],
+            string? stop = ()) returns ai:ChatAssistantMessage|ai:Error {
         // Ollama chat completion API reference: https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-chat-completion
-        json requestPayload = self.prepareRequestPayload(messages, tools, stop);
+        json requestPayload = check self.prepareRequestPayload(messages, tools, stop);
         OllamaResponse|error response = self.ollamaClient->/api/chat.post(requestPayload);
         if response is error {
             return error ai:LlmConnectionError("Error while connecting to ollama", response);
@@ -66,15 +66,8 @@ public isolated client class ModelProvider {
         return self.mapOllamaResponseToAssistantMessage(response);
     }
 
-    private isolated function prepareRequestPayload(ai:ChatMessage[] messages, ai:ChatCompletionFunctions[] tools,
-            string? stop) returns json {
-        json[] transformedMessages = messages.'map(isolated function(ai:ChatMessage message) returns json {
-            if message is ai:ChatFunctionMessage {
-                return {role: TOOL_ROLE, content: message?.content};
-            }
-            return message;
-        });
-
+    private isolated function prepareRequestPayload(ai:ChatMessage[]|ai:ChatUserMessage messages,
+            ai:ChatCompletionFunctions[] tools, string? stop) returns json|ai:Error {
         map<json> options = {...self.modleParameters};
         if stop is string {
             options["stop"] = [stop];
@@ -82,14 +75,46 @@ public isolated client class ModelProvider {
 
         map<json> payload = {
             model: self.modelType,
-            messages: transformedMessages,
+            messages: check self.mapToOllamaRequestMessage(messages),
             'stream: false,
             options
         };
         if tools.length() > 0 {
-            payload["tools"] = tools.'map(tool => {'type: ai:FUNCTION, 'function: tool});
+            payload["tools"] = tools.'map(tool => {'type: FUNCTION, 'function: tool});
         }
         return payload;
+    }
+
+    private isolated function mapToOllamaRequestMessage(ai:ChatMessage[]|ai:ChatUserMessage messages)
+    returns json[]|ai:Error {
+        json[] transformedMessages = [];
+        if messages is ai:ChatUserMessage {
+            transformedMessages.push({
+                role: TOOL_ROLE,
+                content: check getChatMessageStringContent(messages?.content)
+            });
+            return transformedMessages;
+        }
+        foreach ai:ChatMessage message in messages {
+            if message is ai:ChatFunctionMessage {
+                transformedMessages.push({role: TOOL_ROLE, content: message?.content});
+
+            } else if message is ai:ChatUserMessage {
+                transformedMessages.push({
+                    role: ai:USER,
+                    content: check getChatMessageStringContent(message.content)
+                });
+
+            } else if message is ai:ChatSystemMessage {
+                transformedMessages.push({
+                    role: ai:SYSTEM,
+                    content: check getChatMessageStringContent(message.content)
+                });
+            } else if message is ai:ChatAssistantMessage {
+                transformedMessages.push(message);
+            }
+        }
+        return transformedMessages;
     }
 
     private isolated function mapOllamaResponseToAssistantMessage(OllamaResponse response)
@@ -110,6 +135,9 @@ public isolated client class ModelProvider {
             };
         return {role: ai:ASSISTANT, toolCalls};
     }
+
+    // TODO
+    isolated remote function generate(ai:Prompt prompt, typedesc<anydata> td = <>) returns td|ai:Error = external;
 }
 
 isolated function getModelParameterMap(OllamaModelParameters modleParameters) returns readonly & map<json>|ai:Error {
@@ -120,4 +148,45 @@ isolated function getModelParameterMap(OllamaModelParameters modleParameters) re
     } on fail error e {
         return error ai:Error("Error while processing model parameters", e);
     }
+}
+
+isolated function getChatMessageStringContent(ai:Prompt|string prompt) returns string|ai:Error {
+    if prompt is string {
+        return prompt;
+    }
+    string[] & readonly strings = prompt.strings;
+    anydata[] insertions = prompt.insertions;
+    string promptStr = strings[0];
+    foreach int i in 0 ..< insertions.length() {
+        string str = strings[i + 1];
+        anydata insertion = insertions[i];
+
+        if insertion is ai:TextDocument|ai:TextChunk {
+            promptStr += insertion.content + " " + str;
+            continue;
+        }
+
+        if insertion is ai:TextDocument[] {
+            foreach ai:TextDocument doc in insertion {
+                promptStr += doc.content + " ";
+            }
+            promptStr += str;
+            continue;
+        }
+
+        if insertion is ai:TextChunk[] {
+            foreach ai:TextChunk doc in insertion {
+                promptStr += doc.content + " ";
+            }
+            promptStr += str;
+            continue;
+        }
+
+        if insertion is ai:Document {
+            return error ai:Error("Only Text Documents are currently supported.");
+        }
+
+        promptStr += insertion.toString() + str;
+    }
+    return promptStr.trim();
 }
