@@ -124,6 +124,36 @@ function testGenerateMethodWithRecordArrayReturnType() returns error? {
 }
 
 @test:Config
+function testGenerateMethodWithImageDocument() returns ai:Error? {
+    ai:ImageDocument img = {
+        content: sampleBinaryData
+    };
+
+    ai:ImageDocument img2 = {
+        content: "https://example.com/sample-image.jpg"
+    };
+
+    ai:ImageDocument img3 = {
+        content: "<invalid-url>"
+    };
+
+    string|error description = ollamaProvider->generate(`Describe the following image.${img}.`);
+    test:assertEquals(description, "This is a sample image description.");
+
+    description = ollamaProvider->generate(`Describe this image.${img2}.`);
+    test:assertEquals(description, "This is a sample image description.");
+
+    string[]|error descriptions = ollamaProvider->generate(`Describe these images.${<ai:ImageDocument[]>[img, img2]}.`);
+    test:assertEquals(descriptions, ["This is a sample image description.", "This is a sample image description."]);
+
+    description = ollamaProvider->generate(`Describe this image. ${img3}.`);
+    if description is string {
+        test:assertFail();
+    } 
+    test:assertEquals(description.message(), "Must be a valid URL.");
+}
+
+@test:Config
 function testGenerateMethodWithInvalidBasicType() returns ai:Error? {
     boolean|error rating = ollamaProvider->generate(`What is ${1} + ${1}?`);
     test:assertTrue(rating is error);

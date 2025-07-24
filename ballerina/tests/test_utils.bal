@@ -51,6 +51,18 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParameterSchemaStringForRateBlog2;
     }
 
+    if message.startsWith("Describe the following image.") {
+        return expectedParameterSchemaStringForRateBlog9;
+    }
+
+    if message.startsWith("Describe this image.") {
+        return expectedParameterSchemaStringForRateBlog9;
+    }
+
+    if message.startsWith("Describe these images.") {
+        return expectedParameterSchemaStringForRateBlog8;
+    }
+
     if message.startsWith("How do you rate this blog") {
         return expectedParameterSchemaStringForRateBlog7;
     }
@@ -167,6 +179,18 @@ isolated function getTheMockLLMResult(string message) returns map<json> {
         }
     }
 
+    if message.startsWith("Describe the following image.") {
+        return {"result": "This is a sample image description."};
+    }
+
+    if message.startsWith("Describe this image.") {
+        return {"result": "This is a sample image description."};
+    }
+
+    if message.startsWith("Describe these images.") {
+        return {"result": ["This is a sample image description.", "This is a sample image description."]};
+    }
+
     return {};
 }
 
@@ -244,6 +268,18 @@ isolated function getExpectedPrompt(string message) returns string {
         return string `Who is a popular sportsperson that was 
         born in the decade starting from 1990 with Simone in 
         their name?`;
+    }
+
+    if message.startsWith("Describe the following image.") {
+        return string `Describe the following image. ${sampleStringData} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    }
+
+    if message.startsWith("Describe this image.") {
+        return "Describe this image. https://example.com/sample-image.jpg .\nYou must call the `getResults` tool to obtain the correct answer.";
+    }
+
+    if message.startsWith("Describe these images.") {
+        return string `Describe these images. ${sampleStringData}  https://example.com/sample-image.jpg .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
     }
 
     return "INVALID";

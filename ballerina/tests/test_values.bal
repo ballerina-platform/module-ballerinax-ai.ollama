@@ -13,6 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import ballerina/lang.array;
 
 type Blog record {
     string title;
@@ -23,6 +24,9 @@ type Review record {|
     int rating;
     string comment;
 |};
+
+final readonly & byte[] sampleBinaryData = [0x01, 0x02, 0x03, 0x04, 0x05];
+final readonly & string sampleStringData = array:toBase64(sampleBinaryData);
 
 const blog1 = {
     // Generated.
@@ -70,7 +74,7 @@ final string expectedPromptStringForRateBlog7 =
 final string expectedPromptStringForRateBlog8 =
     string `How would you rate this text blog out of 10, Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
-final string expectedPromptStringForRateBlog9 = string 
+final string expectedPromptStringForRateBlog9 = string
     `How would you rate this text blogs out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForRateBlog10 = string `Evaluate this blogs out of 10.
@@ -101,7 +105,7 @@ const expectedParameterSchemaStringForRateBlog =
     {"type": "object", "properties": {"result": {"type": "integer"}}};
 
 const expectedParameterSchemaStringForRateBlog7 =
-    {"type":"object","properties":{"result":{"type":["integer", "null"]}}};
+    {"type": "object", "properties": {"result": {"type": ["integer", "null"]}}};
 
 const expectedParameterSchemaStringForRateBlog2 =
     {
@@ -161,6 +165,22 @@ const expectedParameterSchemaStringForRateBlog6 =
         }
     }
 };
+
+const expectedParameterSchemaStringForRateBlog8 =
+    {
+    "type": "object",
+    "properties": {
+        "result": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+};
+
+const expectedParameterSchemaStringForRateBlog9 =
+    {"type": "object", "properties": {"result": {"type": "string"}}};
 
 const expectedParamterSchemaStringForBalProgram =
     {"type": "object", "properties": {"result": {"type": "integer"}}};
