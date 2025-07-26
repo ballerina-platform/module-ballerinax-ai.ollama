@@ -149,8 +149,21 @@ function testGenerateMethodWithImageDocument() returns ai:Error? {
     description = ollamaProvider->generate(`Describe this image. ${img3}.`);
     if description is string {
         test:assertFail();
-    } 
+    }
     test:assertEquals(description.message(), "Must be a valid URL.");
+}
+
+@test:Config
+function testGenerateMethodWithInvalidDocument() returns ai:Error? {
+    ai:AudioDocument aud = {
+        content: sampleBinaryData
+    };
+
+    string|error description = ollamaProvider->generate(`Describe this image. ${aud}.`);
+    if description is string {
+        test:assertFail();
+    }
+    test:assertEquals(description.message(), "Only Text and Image Documents are currently supported.");
 }
 
 @test:Config
