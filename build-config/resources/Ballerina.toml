@@ -3,6 +3,7 @@ authors = ["Ballerina"]
 distribution = "2201.12.0"
 keywords = ["AI", "Agent", "Ollama", "Model", "Provider"]
 license = ["Apache-2.0"]
+icon="icon.png"
 name = "ai.ollama"
 org = "ballerinax"
 repository = "https://github.com/ballerina-platform/module-ballerinax-ai.ollama"
