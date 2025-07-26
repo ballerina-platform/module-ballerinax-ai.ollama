@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/ai;
+import ballerina/constraint;
 import ballerina/http;
 
 type ResponseSchema record {|
@@ -92,33 +93,55 @@ isolated function getGetResultsTool(map<json> parameters) returns map<json>[]|er
 isolated function generateChatCreationContent(ai:Prompt prompt) returns string|ai:Error {
     string[] & readonly strings = prompt.strings;
     anydata[] insertions = prompt.insertions;
-    string promptStr = strings[0];
+    string promptStr = "";
+
+    if strings.length() > 0 {
+        promptStr += strings[0];
+    }
+
     foreach int i in 0 ..< insertions.length() {
-        string str = strings[i + 1];
         anydata insertion = insertions[i];
-
-        if insertion is ai:TextDocument {
-            promptStr += insertion.content + " " + str;
-            continue;
-        }
-
-        if insertion is ai:TextDocument[] {
-            foreach ai:TextDocument doc in insertion {
-                promptStr += doc.content  + " ";
-                
-            }
-            promptStr += str;
-            continue;
-        }
+        string str = strings[i + 1];
 
         if insertion is ai:Document {
-            return error ai:Error("Only Text Documents are currently supported.");
+            if insertion is ai:TextDocument {
+                promptStr += insertion.content + " ";
+            } else if insertion is ai:ImageDocument {
+                promptStr += check addImageContentPart(insertion);
+            } else {
+                return error ai:Error("Only Text and Image Documents are currently supported.");
+            }
+        } else if insertion is ai:Document[] {
+            foreach ai:Document doc in insertion {
+                if doc is ai:TextDocument {
+                    promptStr += doc.content + " ";
+                } else if doc is ai:ImageDocument {
+                    promptStr += check addImageContentPart(doc);
+                } else {
+                    return error ai:Error("Only Text and Image Documents are currently supported.");
+                }
+            }
+        } else {
+            promptStr += insertion.toString();
         }
-
-        promptStr += insertion.toString() + str;
+        promptStr += str;
     }
+
     promptStr += addToolDirective();
     return promptStr.trim();
+}
+
+isolated function addImageContentPart(ai:ImageDocument doc) returns string|ai:Error {
+    ai:Url|byte[] content = doc.content;
+    if content is ai:Url {
+        ai:Url|constraint:Error validationRes = constraint:validate(content);
+        if validationRes is error {
+            return error(validationRes.message(), validationRes.cause());
+        }
+        return string ` ${content} `;
+    }
+
+    return string ` ${content.toBase64()} `;
 }
 
 isolated function addToolDirective() returns string {
