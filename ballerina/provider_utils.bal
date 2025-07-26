@@ -23,8 +23,6 @@ type ResponseSchema record {|
     boolean isOriginallyJsonObject = true;
 |};
 
-type ImageContent ai:Url|byte[];
-
 const JSON_CONVERSION_ERROR = "FromJsonStringError";
 const CONVERSION_ERROR = "ConversionError";
 const ERROR_MESSAGE = "Error occurred while attempting to parse the response from the " +
@@ -141,7 +139,7 @@ isolated function addImageContentPart(ai:ImageDocument doc) returns string|ai:Er
             return error(validationRes.message(), validationRes.cause());
         }
         return string ` ${content} `;
-    } 
+    }
 
     return string ` ${content.toBase64()} `;
 }
