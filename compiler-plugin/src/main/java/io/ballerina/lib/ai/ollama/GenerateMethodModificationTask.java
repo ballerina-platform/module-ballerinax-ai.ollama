@@ -18,11 +18,10 @@
 
 package io.ballerina.lib.ai.ollama;
 
-import io.ballerina.compiler.api.ModuleID;
 import io.ballerina.compiler.api.SemanticModel;
+import io.ballerina.compiler.api.Types;
 import io.ballerina.compiler.api.symbols.ArrayTypeSymbol;
 import io.ballerina.compiler.api.symbols.ClassSymbol;
-import io.ballerina.compiler.api.symbols.ModuleSymbol;
 import io.ballerina.compiler.api.symbols.RecordTypeSymbol;
 import io.ballerina.compiler.api.symbols.Symbol;
 import io.ballerina.compiler.api.symbols.TupleTypeSymbol;
@@ -81,6 +80,10 @@ import static io.ballerina.projects.util.ProjectConstants.EMPTY_STRING;
 class GenerateMethodModificationTask implements ModifierTask<SourceModifierContext> {
     private static final String AI_MODULE_NAME = "ai";
     private static final String BALLERINA_ORG_NAME = "ballerina";
+    private static final String OLLAMA_MODEL_PROVIDER_NAME = "ModelProvider";
+    private static final String OLLAMA_MODEL_PROVIDER_MODULE_NAME = "ai.ollama";
+    private static final String OLLAMA_MODEL_PROVIDER_MODULE_VERSION = "1";
+    private static final String OLLAMA_MODEL_PROVIDER_MODULE_ORG = "ballerinax";
     private final AiOllamaCodeModifier.AnalysisData analysisData;
     private final ModifierData modifierData;
 
@@ -103,12 +106,17 @@ class GenerateMethodModificationTask implements ModifierTask<SourceModifierConte
             Collection<DocumentId> documentIds = module.documentIds();
             Collection<DocumentId> testDocumentIds = module.testDocumentIds();
 
+            Types types = semanticModel.types();
+            Optional<Symbol> ollamaModelProviderSymbol =
+                    types.getTypeByName(OLLAMA_MODEL_PROVIDER_MODULE_ORG, OLLAMA_MODEL_PROVIDER_MODULE_NAME,
+                            OLLAMA_MODEL_PROVIDER_MODULE_VERSION, OLLAMA_MODEL_PROVIDER_NAME);
+
             for (DocumentId documentId : documentIds) {
-                analyzeDocument(module, documentId, semanticModel);
+                analyzeDocument(module, documentId, semanticModel, ollamaModelProviderSymbol);
             }
 
             for (DocumentId documentId : testDocumentIds) {
-                analyzeDocument(module, documentId, semanticModel);
+                analyzeDocument(module, documentId, semanticModel, ollamaModelProviderSymbol);
             }
 
             for (DocumentId documentId : documentIds) {
@@ -123,14 +131,15 @@ class GenerateMethodModificationTask implements ModifierTask<SourceModifierConte
         }
     }
 
-    private void analyzeDocument(Module module, DocumentId documentId, SemanticModel semanticModel) {
+    private void analyzeDocument(Module module, DocumentId documentId, SemanticModel semanticModel,
+                                 Optional<Symbol> ollamaModelProviderSymbol) {
         Document document = module.document(documentId);
         Node rootNode = document.syntaxTree().rootNode();
         if (!(rootNode instanceof ModulePartNode modulePartNode)) {
             return;
         }
 
-        analyzeGenerateMethod(document, semanticModel, modulePartNode, this.analysisData);
+        analyzeGenerateMethod(semanticModel, modulePartNode, ollamaModelProviderSymbol, this.analysisData);
     }
 
     private static TextDocument modifyDocument(Document document, ModifierData modifierData) {
@@ -157,9 +166,11 @@ class GenerateMethodModificationTask implements ModifierTask<SourceModifierConte
         return NodeParser.parseImportDeclaration(String.format("import %s/%s;", BALLERINA_ORG_NAME, AI_MODULE_NAME));
     }
 
-    private void analyzeGenerateMethod(Document document, SemanticModel semanticModel,
-                                        ModulePartNode modulePartNode, AiOllamaCodeModifier.AnalysisData analysisData) {
-        new GenerateMethodJsonSchemaGenerator(semanticModel, document, analysisData).generate(modulePartNode);
+    private void analyzeGenerateMethod(SemanticModel semanticModel,
+                                       ModulePartNode modulePartNode, Optional<Symbol> ollamaModelProviderSymbol,
+                                       AiOllamaCodeModifier.AnalysisData analysisData) {
+        new GenerateMethodJsonSchemaGenerator(semanticModel, ollamaModelProviderSymbol, analysisData)
+                .generate(modulePartNode);
     }
 
     private static String getAiModuleImportPrefix(NodeList<ImportDeclarationNode> imports) {
@@ -197,24 +208,29 @@ class GenerateMethodModificationTask implements ModifierTask<SourceModifierConte
 
     private class GenerateMethodJsonSchemaGenerator extends NodeVisitor {
         private static final String GENERATE_METHOD_NAME = "generate";
-        private static final String OLLAMA_MODEL_PROVIDER_NAME = "ModelProvider";
-        private static final String OLLAMA_MODEL_PROVIDER_MODULE_NAME = "ai.ollama";
-        private static final String OLLAMA_MODEL_PROVIDER_MODULE_VERSION = "1";
-        private static final String OLLAMA_MODEL_PROVIDER_MODULE_ORG = "ballerinax";
         private static final String STRING = "string";
         private static final String BYTE = "byte";
         private static final String NUMBER = "number";
         private final SemanticModel semanticModel;
-        private final Document document;
         private final TypeMapper typeMapper;
         private final ClassSymbol ollamaProviderSymbol;
 
-        public GenerateMethodJsonSchemaGenerator(SemanticModel semanticModel, Document document,
+        public GenerateMethodJsonSchemaGenerator(SemanticModel semanticModel,
+                                                 Optional<Symbol> ollamaModelProviderSymbolOpt,
                                                  AiOllamaCodeModifier.AnalysisData analyserData) {
             this.semanticModel = semanticModel;
-            this.document = document;
             this.typeMapper = analyserData.typeMapper;
-            this.ollamaProviderSymbol = getOllamaProviderSymbol(document.syntaxTree().rootNode()).orElse(null);
+            if (ollamaModelProviderSymbolOpt.isEmpty()) {
+                this.ollamaProviderSymbol = null;
+                return;
+            }
+
+            Symbol ollamaModelProviderSymbol = ollamaModelProviderSymbolOpt.get();
+            if (ollamaModelProviderSymbol instanceof ClassSymbol ollamaModelProviderClassSymbol) {
+                this.ollamaProviderSymbol = ollamaModelProviderClassSymbol;
+            } else {
+                this.ollamaProviderSymbol = null;
+            }
         }
 
         void generate(ModulePartNode modulePartNode) {
@@ -266,37 +282,6 @@ class GenerateMethodModificationTask implements ModifierTask<SourceModifierConte
                         populateTypeSchema(member, typeMapper, typeSchemas, anydataType));
                 default -> { }
             }
-        }
-
-        private Optional<ClassSymbol> getOllamaProviderSymbol(Node node) {
-            Optional<ModuleSymbol> ollamaModuleSymbol = getOllamaModuleSymbol(node);
-            if (ollamaModuleSymbol.isEmpty()) {
-                return Optional.empty();
-            }
-
-            for (ClassSymbol classSymbol: ollamaModuleSymbol.get().classes()) {
-                if (classSymbol.nameEquals(OLLAMA_MODEL_PROVIDER_NAME)) {
-                    return Optional.of(classSymbol);
-                }
-            }
-
-            return Optional.empty();
-        }
-
-        private Optional<ModuleSymbol> getOllamaModuleSymbol(Node node) {
-            for (Symbol symbol : semanticModel.visibleSymbols(this.document, node.lineRange().startLine())) {
-                if (!(symbol instanceof ModuleSymbol moduleSymbol)) {
-                    continue;
-                }
-
-                ModuleID id = moduleSymbol.id();
-                if (OLLAMA_MODEL_PROVIDER_MODULE_ORG.equals(id.orgName())
-                        && OLLAMA_MODEL_PROVIDER_MODULE_NAME.equals(id.moduleName())
-                        && id.version().startsWith(OLLAMA_MODEL_PROVIDER_MODULE_VERSION)) {
-                    return Optional.of(moduleSymbol);
-                }
-            }
-            return Optional.empty();
         }
 
         private static String getJsonSchema(Schema schema) {
