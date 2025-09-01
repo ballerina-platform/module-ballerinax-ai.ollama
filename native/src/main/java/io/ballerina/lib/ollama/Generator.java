@@ -36,6 +36,7 @@ public class Generator {
                 modelProvider.get(StringUtils.fromString("ollamaClient")),
                 modelProvider.get(StringUtils.fromString("modelType")),
                 modelProvider.get(StringUtils.fromString("modleParameters")),
+                modelProvider.get(StringUtils.fromString("generatorConfig")),
                 prompt, expectedResponseTypedesc);
     }
 }
