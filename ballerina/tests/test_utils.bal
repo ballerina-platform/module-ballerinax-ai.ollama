@@ -23,6 +23,14 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParameterSchemaStringForRateBlog;
     }
 
+    if message.startsWith("On a scale from 1 to 10") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
+    if message.startsWith("What is the result of") {
+        return {"type": "object", "properties": {"result": {"type": "integer"}}};
+    }
+
     if message.startsWith("Please rate this blogs") {
         return expectedParameterSchemaStringForRateBlog5;
     }
@@ -138,13 +146,29 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
     return {};
 }
 
-isolated function getTheMockLLMResult(string message) returns map<json> {
+isolated function getInitialMockLlmResult(string message) returns map<json>|error {
     if message.startsWith("Evaluate this") {
         return {"result": [9, 1]};
     }
 
     if message.startsWith("Rate this blog") {
         return {"result": 4};
+    }
+
+    if message.startsWith("On a scale from 1 to 10") {
+        return check review.fromJsonStringWithType();
+    }
+
+    if message.startsWith("What is the result of 1 + 4?") {
+        return {result: 5};
+    }
+
+    if message.startsWith("What is the result of 1 + 5?") {
+        return {result: 6};
+    }
+
+    if message.startsWith("What is the result of") {
+        return {result: true};
     }
 
     if message.startsWith("Please rate this blogs") {
@@ -269,10 +293,10 @@ isolated function getTheMockLLMResult(string message) returns map<json> {
         return {"result": "This is a random joke"};
     }
 
-    return {};
+    return error("Unexpected message for initial call");
 }
 
-isolated function getTestServiceResponse(string content) returns OllamaResponse =>
+isolated function getTestServiceResponse(string content, int retryCount = 0) returns OllamaResponse|error =>
     {
     model: "llama2",
     message: {
@@ -282,14 +306,78 @@ isolated function getTestServiceResponse(string content) returns OllamaResponse 
             {
                 'function: {
                     name: GET_RESULTS_TOOL,
-                    arguments: getTheMockLLMResult(content)
+                    arguments: retryCount == 0 ?
+                                check getInitialMockLlmResult(content) :
+                                    retryCount == 1 ?
+                                        check getFirstRetryLlmResult(content) :
+                                        check getSecondRetryLlmResult(content)
                 }
             }
         ]
     }
 };
 
-isolated function getExpectedPrompt(string message) returns string {
+isolated function getFirstRetryLlmResult(string message) returns map<json>|error {
+    if message.startsWith("What is the result of 1 + 1?") {
+        return {result: "hi"};
+    }
+
+    if message.startsWith("What is the result of 1 + 2?") {
+        return {result: null};
+    }
+
+    if message.startsWith("What is the result of 1 + 3?") {
+        return {result: 4};
+    }
+
+    if message.startsWith("What is the result of 1 + 6?") {
+        return {result: 7};
+    }
+
+    return error("Unexpected message for first retry call");
+}
+
+isolated function getSecondRetryLlmResult(string message) returns map<json>|error {
+    if message.startsWith("What is the result of 1 + 1?") {
+        return {result: 2};
+    }
+
+    if message.startsWith("What is the result of 1 + 2?") {
+        return {result: 3};
+    }
+
+    return error("Unexpected message for second retry call");
+}
+
+isolated function generateConversionErrorMessage(string errorMessage) returns string =>
+    string `The tool call for the function 'getResults' failed.
+        Error: error("{ballerina/lang.value}ConversionError",message="${errorMessage}")
+        You must correct the function arguments based on this error and respond with a valid tool call.`;
+
+isolated function getExpectedContentPartsForFirstRetryCall(string message) returns string|error {
+    if message.startsWith("What is the result of 1 + 1?")
+        || message.startsWith("What is the result of 1 + 2?")
+        || message.startsWith("What is the result of 1 + 3?")
+        || message.startsWith("What is the result of 1 + 6?") {
+        return generateConversionErrorMessage("'boolean' value cannot be converted to 'int'");
+    }
+
+    return error("Unexpected content parts for first retry call");
+}
+
+isolated function getExpectedContentPartsForSecondRetryCall(string message) returns string|error {
+    if message.startsWith("What is the result of 1 + 1?") {
+        return generateConversionErrorMessage("'string' value cannot be converted to 'int'");
+    }
+
+    if message.startsWith("What is the result of 1 + 2?") {
+        return generateConversionErrorMessage("cannot convert '()' to type 'int'");
+    }
+
+    return error("Unexpected content parts for second retry call");
+}
+
+isolated function getExpectedPrompt(string message) returns string|error {
     if message.startsWith("Rate this blog") {
         return expectedPromptStringForRateBlog;
     }
@@ -400,5 +488,42 @@ isolated function getExpectedPrompt(string message) returns string {
         " tool to obtain the correct answer.";
     }
 
-    return "INVALID";
+    if message.startsWith("On a scale from 1 to 10") {
+        return string `On a scale from 1 to 10, how would you rank this blog?.
+        Title: ${blog2.title}
+        Content: ${blog2.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    }
+
+    if message.startsWith("What is the result of 1 + 1?") {
+        return "What is the result of 1 + 1?\nYou must call the `getResults`" +
+        " tool to obtain the correct answer.";
+    }
+
+    if message.startsWith("What is the result of 1 + 2?") {
+        return "What is the result of 1 + 2?\nYou must call the `getResults`" +
+        " tool to obtain the correct answer.";
+    }
+
+    if message.startsWith("What is the result of 1 + 3?") {
+        return "What is the result of 1 + 3?\nYou must call the `getResults`" +
+        " tool to obtain the correct answer.";
+    }
+
+    if message.startsWith("What is the result of 1 + 4?") {
+        return "What is the result of 1 + 4?\nYou must call the `getResults`" +
+        " tool to obtain the correct answer.";
+    }
+
+    if message.startsWith("What is the result of 1 + 5?") {
+        return "What is the result of 1 + 5?\nYou must call the `getResults`" +
+        " tool to obtain the correct answer.";
+    }
+
+    if message.startsWith("What is the result of 1 + 6?") {
+        return "What is the result of 1 + 6?\nYou must call the `getResults`" +
+        " tool to obtain the correct answer.";
+    }
+
+
+    return error("Unexpected prompt");
 }

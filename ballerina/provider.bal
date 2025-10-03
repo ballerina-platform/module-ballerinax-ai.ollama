@@ -21,6 +21,7 @@ import ballerina/jballerina.java;
 
 const DEFAULT_OLLAMA_SERVICE_URL = "http://localhost:11434";
 const TOOL_ROLE = "tool";
+const DEFAULT_GENERATOR_CONFIG = {};
 
 # Provider represents a client for interacting with an Ollama language models.
 public isolated client class ModelProvider {
@@ -28,16 +29,20 @@ public isolated client class ModelProvider {
     private final http:Client ollamaClient;
     private final string modelType;
     private final readonly & map<json> modleParameters;
+    private final readonly & ai:GeneratorConfig generatorConfig;
 
     # Initializes the client with the given connection configuration and model configuration.
     #
     # + modelType - The Ollama model name
     # + serviceUrl - The base URL for the Ollama API endpoint
     # + modleParameters - Additional model parameters
+    # + generatorConfig - Configuration for the `ModelProvider.generate()` method.
     # + connectionConfig - Additional connection configuration
     # + return - `nil` on success, otherwise an `ai:Error`. 
     public isolated function init(@display {label: "Model Type"} string modelType,
             @display {label: "Service URL"} string serviceUrl = DEFAULT_OLLAMA_SERVICE_URL,
+            @display {label: "Generator Configuration"} 
+                readonly & ai:GeneratorConfig generatorConfig = DEFAULT_GENERATOR_CONFIG,
             @display {label: "Ollama Model Parameters"} *OllamaModelParameters modleParameters,
             @display {label: "Connection Configuration"} *ConnectionConfig connectionConfig) returns ai:Error? {
         http:ClientConfiguration clientConfig = {...connectionConfig};
@@ -48,6 +53,7 @@ public isolated client class ModelProvider {
         self.modleParameters = check getModelParameterMap(modleParameters);
         self.ollamaClient = ollamaClient;
         self.modelType = modelType;
+        self.generatorConfig = generatorConfig;
     }
 
     # Sends a chat request to the Ollama model with the given messages and tools.
