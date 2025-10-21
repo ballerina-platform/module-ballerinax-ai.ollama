@@ -15,6 +15,7 @@
 // under the License.
 
 import ballerina/ai;
+import ballerina/ai.observe;
 import ballerina/constraint;
 import ballerina/http;
 
@@ -77,18 +78,18 @@ isolated function getExpectedResponseSchema(typedesc<anydata> expectedResponseTy
     return generateJsonObjectSchema(check generateJsonSchemaForTypedescAsJson(td));
 }
 
-isolated function getGetResultsTool(map<json> parameters) returns map<json>[]|error =>
+isolated function getGetResultsTool(map<json> parameters) returns map<json>[] =>
     [
-        {
-            'type: FUNCTION,
-            'function: {
-                name: GET_RESULTS_TOOL,
-                parameters: parameters,
-                description: string `Required Tool to call with the response from a large language model (LLM) for a user prompt. 
+    {
+        'type: FUNCTION,
+        'function: {
+            name: GET_RESULTS_TOOL,
+            parameters: parameters,
+            description: string `Required Tool to call with the response from a large language model (LLM) for a user prompt. 
                             This tool is mandatory for the LLM to return a response.`
-            }
         }
-    ];
+    }
+];
 
 isolated function generateChatCreationContent(ai:Prompt prompt) returns string|ai:Error {
     string[] & readonly strings = prompt.strings;
@@ -157,54 +158,79 @@ isolated function handleParseResponseError(error chatResponseError) returns erro
 }
 
 isolated function generateLlmResponse(http:Client llmClient, string modelType,
-        readonly & map<json> modleParameters, ai:Prompt prompt, 
+        readonly & map<json> modleParameters, ai:Prompt prompt,
         typedesc<json> expectedResponseTypedesc) returns anydata|ai:Error {
-    string content = check generateChatCreationContent(prompt);
-    ResponseSchema ResponseSchema = check getExpectedResponseSchema(expectedResponseTypedesc);
-    map<json>[]|error tools = getGetResultsTool(ResponseSchema.schema);
-    if tools is error {
-        return error("Error while generating the tool: " + tools.message());
+    observe:GenerateContentSpan span = observe:createGenerateContentSpan(modelType);
+    span.addProvider("ollama");
+
+    string content;
+    ResponseSchema responseSchema;
+    do {
+        content = check generateChatCreationContent(prompt);
+        responseSchema = check getExpectedResponseSchema(expectedResponseTypedesc);
+    } on fail ai:Error err {
+        span.close(err);
+        return err;
     }
 
+    map<json>[] tools = getGetResultsTool(responseSchema.schema);
+    map<json>[] messages = [{role: ai:USER, "content": content}];
     map<json> request = {
-        messages: [
-            {
-                role: ai:USER,
-                "content": content
-            }
-        ],
+        messages,
         tools,
         model: modelType,
         'stream: false,
         options: {...modleParameters}
     };
 
+    span.addInputMessages(messages);
     OllamaResponse|error response = llmClient->/api/chat.post(request);
     if response is error {
-        return error("Error while connecting to ollama", response);
+        ai:Error err = error("Error while connecting to ollama", response);
+        span.close(err);
+        return err;
+    }
+
+    int? inputTokens = response.prompt_eval_count;
+    if inputTokens is int {
+        span.addInputTokenCount(inputTokens);
+    }
+    int? outputTokens = response.eval_count;
+    if outputTokens is int {
+        span.addOutputTokenCount(outputTokens);
+    }
+    string? finishReason = response.done_reason;
+    if finishReason is string {
+        span.addFinishReason(finishReason);
     }
 
     OllamaToolCall[]? toolCalls = response.message?.tool_calls;
-
     if toolCalls is () || toolCalls.length() == 0 {
-        return error(NO_RELEVANT_RESPONSE_FROM_THE_LLM);
+        ai:Error err = error(NO_RELEVANT_RESPONSE_FROM_THE_LLM);
+        span.close(err);
+        return err;
     }
 
     OllamaToolCall tool = toolCalls[0];
     map<json> arguments = tool.'function.arguments;
-
     anydata|error res = parseResponseAsType(arguments.toJsonString(), expectedResponseTypedesc,
-            ResponseSchema.isOriginallyJsonObject);
+            responseSchema.isOriginallyJsonObject);
     if res is error {
-        return error(string `Invalid value returned from the LLM Client, expected: '${
+        ai:Error err = error(string `Invalid value returned from the LLM Client, expected: '${
             expectedResponseTypedesc.toBalString()}', found '${res.toBalString()}'`);
+        span.close(err);
+        return err;
     }
 
     anydata|error result = res.ensureType(expectedResponseTypedesc);
-
     if result is error {
-        return error(string `Invalid value returned from the LLM Client, expected: '${
+        ai:Error err = error(string `Invalid value returned from the LLM Client, expected: '${
             expectedResponseTypedesc.toBalString()}', found '${(typeof response).toBalString()}'`);
+        span.close(err);
+        return err;
     }
+    span.addOutputMessages(result.toJson());
+    span.addOutputType(observe:JSON);
+    span.close();
     return result;
 }

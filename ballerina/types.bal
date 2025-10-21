@@ -158,9 +158,13 @@ public type OllamaModelParameters record {|
     float minP = 0.0;
 |};
 
+// https://github.com/ollama/ollama/blob/main/docs/api.md#response-36
 type OllamaResponse record {
     string model;
     OllamaMessage message;
+    string done_reason?;
+    int prompt_eval_count?;
+    int eval_count?;
 };
 
 type OllamaMessage record {
