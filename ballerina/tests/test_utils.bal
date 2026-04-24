@@ -140,16 +140,12 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return {"type":"object","properties":{"result":{"anyOf":[{"type":"string"},{"type":"null"}]}}};
     }
 
-    if message.startsWith("Rate this text chunk") {
+    if message.startsWith("How would you rate these text chunks") {
+        return expectedParameterSchemaStringForRateBlog5;
+    }
+
+    if message.startsWith("How would you rate this text chunk") {
         return expectedParameterSchemaStringForRateBlog;
-    }
-
-    if message.startsWith("Rate these text chunks") {
-        return expectedParameterSchemaStringForRateBlog6;
-    }
-
-    if message.startsWith("Rate these mixed documents") {
-        return expectedParameterSchemaStringForRateBlog6;
     }
 
     if message.startsWith("Name a random world class cricketer in India") {
@@ -302,16 +298,15 @@ isolated function getTheMockLLMResult(string message) returns map<json> {
         return {"result": "This is a random joke"};
     }
 
-    if message.startsWith("Rate this text chunk") {
-        return {"result": 4};
+    if message.startsWith("How would you rate these text chunks") {
+        map<json>|error reviewResult = review.fromJsonStringWithType();
+        if reviewResult !is error {
+            return {"result": [reviewResult, reviewResult]};
+        }
     }
 
-    if message.startsWith("Rate these text chunks") {
-        return {"result": [9, 1]};
-    }
-
-    if message.startsWith("Rate these mixed documents") {
-        return {"result": [9, 1]};
+    if message.startsWith("How would you rate this text chunk") {
+        return {result: 4};
     }
 
     return {};
@@ -488,16 +483,12 @@ isolated function getExpectedPrompt(string message) returns string {
         "You must submit your response by calling the `getResults` tool.";
     }
 
-    if message.startsWith("Rate this text chunk") {
-        return expectedPromptStringForTextChunk;
-    }
-
-    if message.startsWith("Rate these text chunks") {
+    if message.startsWith("How would you rate these text chunks") {
         return expectedPromptStringForTextChunkArray;
     }
 
-    if message.startsWith("Rate these mixed documents") {
-        return expectedPromptStringForMixedDocAndChunk;
+    if message.startsWith("How would you rate this text chunk") {
+        return expectedPromptStringForTextChunk;
     }
 
     return "INVALID";

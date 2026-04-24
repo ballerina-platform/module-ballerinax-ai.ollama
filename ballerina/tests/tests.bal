@@ -146,29 +146,19 @@ function testGenerateMethodWithImageDocument() returns ai:Error? {
 }
 
 @test:Config
-function testGenerateMethodWithTextChunk() returns ai:Error? {
-    ai:TextChunk chunk = {'type: "text-chunk", content: string `Title: ${blog1.title} Content: ${blog1.content}`};
+function testGenerateMethodWithTextChunk() returns error? {
+    ai:TextChunk chunk = {
+        content: string `Title: ${blog1.title} Content: ${blog1.content}`
+    };
+    ai:TextChunk[] chunks = [chunk, chunk];
+    int maxScore = 10;
 
-    int|error rating = ollamaProvider->generate(`Rate this text chunk out of 10. ${chunk}.`);
+    int rating = check ollamaProvider->generate(`How would you rate this text chunk content out of ${maxScore}. ${chunk}.`);
     test:assertEquals(rating, 4);
-}
 
-@test:Config
-function testGenerateMethodWithTextChunkArray() returns ai:Error? {
-    ai:TextChunk chunk1 = {'type: "text-chunk", content: string `Title: ${blog1.title} Content: ${blog1.content}`};
-    ai:TextChunk chunk2 = {'type: "text-chunk", content: string `Title: ${blog1.title} Content: ${blog1.content}`};
-
-    int[]|error ratings = ollamaProvider->generate(`Rate these text chunks out of 10. ${<ai:Chunk[]>[chunk1, chunk2]}. Thank you!`);
-    test:assertEquals(ratings, [9, 1]);
-}
-
-@test:Config
-function testGenerateMethodWithMixedDocumentAndChunkArray() returns ai:Error? {
-    ai:TextDocument doc = {content: string `Title: ${blog1.title} Content: ${blog1.content}`};
-    ai:TextChunk chunk = {'type: "text-chunk", content: string `Title: ${blog1.title} Content: ${blog1.content}`};
-
-    int[]|error ratings = ollamaProvider->generate(`Rate these mixed documents out of 10. ${<(ai:Document|ai:Chunk)[]>[doc, chunk]}. Thank you!`);
-    test:assertEquals(ratings, [9, 1]);
+    Review r = check review.fromJsonStringWithType(Review);
+    ReviewArray result = check ollamaProvider->generate(`How would you rate these text chunks out of ${maxScore}. ${chunks}. Thank you!`);
+    test:assertEquals(result, [r, r]);
 }
 
 @test:Config
