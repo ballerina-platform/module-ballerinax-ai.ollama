@@ -115,7 +115,7 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns ChatCont
                 images.push(check getImageBase64(insertion));
                 promptStr += "[img]";
             } else {
-                return error("Only Text and Image Documents are currently supported.");
+                return error ai:Error("Only Text and Image Documents are currently supported.");
             }
         } else if insertion is (ai:Document|ai:Chunk)[] {
             foreach ai:Document|ai:Chunk doc in insertion {
@@ -125,7 +125,7 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns ChatCont
                     images.push(check getImageBase64(doc));
                     promptStr += "[img]";
                 } else {
-                    return error("Only Text and Image Documents are currently supported.");
+                    return error ai:Error("Only Text and Image Documents are currently supported.");
                 }
             }
         } else {
