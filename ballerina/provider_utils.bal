@@ -110,7 +110,7 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns string|a
             } else if insertion is ai:ImageDocument {
                 promptStr += check addImageContentPart(insertion);
             } else {
-                return error("Only Text and Image Documents are currently supported.");
+                return error ai:Error("Only Text and Image Documents are currently supported.");
             }
         } else if insertion is (ai:Document|ai:Chunk)[] {
             foreach ai:Document|ai:Chunk doc in insertion {
@@ -119,7 +119,7 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns string|a
                 } else if doc is ai:ImageDocument {
                     promptStr += check addImageContentPart(doc);
                 } else {
-                    return error("Only Text and Image Documents are currently supported.");
+                    return error ai:Error("Only Text and Image Documents are currently supported.");
                 }
             }
         } else {
