@@ -365,63 +365,78 @@ isolated function getExpectedPrompt(string message) returns string {
     }
 
     if message.startsWith("Describe the following image.") {
-        return "Describe the following image.[img].\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Describe the following image.[img].\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Describe this image.") {
-        return "Describe this image.[img].\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Describe this image.[img].\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Describe these images.") {
-        return "Describe these images.[img][img].\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Describe these images.[img][img].\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
     
     if message.startsWith("Name 10 world class cricketers in India") {
-        return "Name 10 world class cricketers in India\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Name 10 world class cricketers in India\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name 10 world class cricketers as string") {
-        return "Name 10 world class cricketers as string\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Name 10 world class cricketers as string\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name 10 world class cricketers") {
-        return "Name 10 world class cricketers\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Name 10 world class cricketers\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name top 10 world class cricketers") {
-        return "Name top 10 world class cricketers\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Name top 10 world class cricketers\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name a random world class cricketer in India") {
-        return "Name a random world class cricketer in India\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Name a random world class cricketer in India\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name a random world class cricketer") {
-        return "Name a random world class cricketer\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Name a random world class cricketer\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Give me a random joke about cricketers") {
-        return "Give me a random joke about cricketers\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Give me a random joke about cricketers\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Give me a random joke") {
-        return "Give me a random joke\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Give me a random joke\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("What is the capital of France?") {
-        return "What is the capital of France?\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "What is the capital of France?\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Review this restaurant") {
-        return "Review this restaurant in detail\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Review this restaurant in detail\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Summarize and rate this article") {
-        return "Summarize and rate this article\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Summarize and rate this article\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Translate this to French") {
-        return "Translate this to French\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+        return "Translate this to French\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     return "INVALID";

@@ -214,7 +214,8 @@ isolated function generateLlmResponse(http:Client llmClient, string modelType,
     // responding with plain text.
     map<json> systemMessage = {
         role: ai:SYSTEM,
-        "content": string `You must always call the ${GET_RESULTS_TOOL} tool to submit your response. Never reply with plain text.`
+        "content": string `You must always call the ${GET_RESULTS_TOOL
+            } tool to submit your response. Never reply with plain text.`
     };
     map<json> userMessage = {role: ai:USER, "content": chatContent.text};
     if chatContent.images.length() > 0 {
