@@ -300,6 +300,34 @@ function testFallbackCodeFenceContent() returns error? {
 }
 
 @test:Config
+function testFallbackIntArrayType() returns ai:Error? {
+    int[] result = check ollamaProvider->generate(
+        `List three numbers between 1 and 5`);
+    test:assertEquals(result, [1, 3, 5]);
+}
+
+@test:Config
+function testFallbackIntType() returns ai:Error? {
+    int result = check ollamaProvider->generate(
+        `How many continents are there`);
+    test:assertEquals(result, 7);
+}
+
+@test:Config
+function testFallbackFloatType() returns ai:Error? {
+    float result = check ollamaProvider->generate(
+        `What is the value of pi to 2 decimals`);
+    test:assertEquals(result, 3.14);
+}
+
+@test:Config
+function testFallbackBooleanType() returns ai:Error? {
+    boolean result = check ollamaProvider->generate(
+        `Is the earth round`);
+    test:assertEquals(result, true);
+}
+
+@test:Config
 function testFallbackEmptyContent() returns ai:Error? {
     string|error result = ollamaProvider->generate(`Translate this to French`);
     test:assertTrue(result is error);

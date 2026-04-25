@@ -91,6 +91,23 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParameterSchemaStringForRateBlog2;
     }
 
+    if message.startsWith("List three numbers") {
+        return expectedParameterSchemaStringForRateBlog6;
+    }
+
+    if message.startsWith("How many continents") {
+        return expectedParameterSchemaStringForRateBlog;
+    }
+
+    if message.startsWith("What is the value of pi") {
+        return {"type": "object", "properties": {
+            "result": {"type": "number"}}};
+    }
+
+    if message.startsWith("Is the earth round") {
+        return expectedParameterSchemaStringForRateBlog3;
+    }
+
     if message.startsWith("Translate this to French") {
         return expectedParamterSchemaStringForCountry;
     }
@@ -434,6 +451,30 @@ isolated function getExpectedPrompt(string message) returns string {
         "You must submit your response by calling the `getResults` tool.";
     }
 
+    if message.startsWith("List three numbers") {
+        return "List three numbers between 1 and 5\nDo not respond" +
+        " with text. You must submit your response by calling" +
+        " the `getResults` tool.";
+    }
+
+    if message.startsWith("How many continents") {
+        return "How many continents are there\nDo not respond" +
+        " with text. You must submit your response by calling" +
+        " the `getResults` tool.";
+    }
+
+    if message.startsWith("What is the value of pi") {
+        return "What is the value of pi to 2 decimals\nDo not" +
+        " respond with text. You must submit your response by" +
+        " calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Is the earth round") {
+        return "Is the earth round\nDo not respond with text. " +
+        "You must submit your response by calling the " +
+        "`getResults` tool.";
+    }
+
     if message.startsWith("Translate this to French") {
         return "Translate this to French\nDo not respond with text. " +
         "You must submit your response by calling the `getResults` tool.";
@@ -453,6 +494,18 @@ isolated function getFallbackContent(string message) returns string? {
     }
     if message.startsWith("Summarize and rate this article") {
         return "Here is the result:\n```json\n{\"rating\": 8, \"comment\": \"Great blog!\"}\n```";
+    }
+    if message.startsWith("List three numbers") {
+        return "[1, 3, 5]";
+    }
+    if message.startsWith("How many continents") {
+        return "7";
+    }
+    if message.startsWith("What is the value of pi") {
+        return "3.14";
+    }
+    if message.startsWith("Is the earth round") {
+        return "true";
     }
     if message.startsWith("Translate this to French") {
         return "";

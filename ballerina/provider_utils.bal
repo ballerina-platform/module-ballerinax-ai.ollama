@@ -267,8 +267,16 @@ isolated function generateLlmResponse(http:Client llmClient, string modelType,
             span.close(err);
             return err;
         }
-        responseStr = responseSchema.isOriginallyJsonObject ? content :
-            {[RESULT]: content}.toJsonString();
+        if responseSchema.isOriginallyJsonObject {
+            responseStr = content;
+        } else {
+            // Parse content as JSON so the wrapped value preserves its
+            // type (array, number, boolean, ...). Fall back to the raw
+            // string for plain string responses.
+            json|error parsed = content.fromJsonString();
+            json wrapped = parsed is json ? parsed : content;
+            responseStr = {[RESULT]: wrapped}.toJsonString();
+        }
     }
 
     anydata|error res = parseResponseAsType(responseStr, expectedResponseTypedesc,
