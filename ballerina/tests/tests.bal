@@ -161,12 +161,11 @@ function testGenerateMethodWithTextChunk() returns error? {
     ai:TextChunk[] chunks = [chunk, chunk];
     int maxScore = 10;
 
-    int rating = check ollamaProvider->generate(`How would you rate this text chunk content out of ${maxScore}. ${chunk}.`);
+    int rating = check ollamaProvider->generate(`Rate this text chunk content out of ${maxScore}. ${chunk}.`);
     test:assertEquals(rating, 4);
 
     Review r = check review.fromJsonStringWithType();
-    ReviewArray result = check ollamaProvider->generate(
-            `How would you rate these text chunks out of ${maxScore}. ${chunks}. Thank you!`);
+    ReviewArray result = check ollamaProvider->generate(`Rate these text chunks out of ${maxScore}. ${chunks}. Thank you!`);
     test:assertEquals(result, [r, r]);
 }
 
