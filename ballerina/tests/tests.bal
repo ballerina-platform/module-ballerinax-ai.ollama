@@ -156,8 +156,9 @@ function testGenerateMethodWithTextChunk() returns error? {
     int rating = check ollamaProvider->generate(`How would you rate this text chunk content out of ${maxScore}. ${chunk}.`);
     test:assertEquals(rating, 4);
 
-    Review r = check review.fromJsonStringWithType(Review);
-    ReviewArray result = check ollamaProvider->generate(`How would you rate these text chunks out of ${maxScore}. ${chunks}. Thank you!`);
+    Review r = check review.fromJsonStringWithType();
+    ReviewArray result = check ollamaProvider->generate(
+            `How would you rate these text chunks out of ${maxScore}. ${chunks}. Thank you!`);
     test:assertEquals(result, [r, r]);
 }
 

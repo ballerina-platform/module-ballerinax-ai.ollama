@@ -206,10 +206,15 @@ const expectedParamterSchemaStringForCountry =
     {"type": "object", "properties": {"result": {"type": "string"}}};
 
 final string expectedPromptStringForTextChunk =
-    string `How would you rate this text chunk content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    string `How would you rate this text chunk content out of 10. Title: ${
+    blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${
+    "`"}getResults${"`"} tool to obtain the correct answer.`;
 
 final string expectedPromptStringForTextChunkArray =
-    string `How would you rate these text chunks out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    string `How would you rate these text chunks out of 10. Title: ${
+    blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${
+    blog1.content} . Thank you!${"\n"}You must call the ${"`"}getResults${
+    "`"} tool to obtain the correct answer.`;
 
 
 
