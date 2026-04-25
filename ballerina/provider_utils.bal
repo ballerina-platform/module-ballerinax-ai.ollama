@@ -85,16 +85,21 @@ isolated function getGetResultsTool(map<json> parameters) returns map<json>[] =>
         'function: {
             name: GET_RESULTS_TOOL,
             parameters: parameters,
-            description: string `Required Tool to call with the response from a large language model (LLM) for a user prompt. 
-                            This tool is mandatory for the LLM to return a response.`
+            description: "Submit the final answer. Call this tool with your response in the result field."
         }
     }
 ];
 
-isolated function generateChatCreationContent(ai:Prompt prompt) returns string|ai:Error {
+type ChatContent record {|
+    string text;
+    string[] images;
+|};
+
+isolated function generateChatCreationContent(ai:Prompt prompt) returns ChatContent|ai:Error {
     string[] & readonly strings = prompt.strings;
     anydata[] insertions = prompt.insertions;
     string promptStr = "";
+    string[] images = [];
 
     if strings.length() > 0 {
         promptStr += strings[0];
@@ -108,7 +113,8 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns string|a
             if insertion is ai:TextDocument {
                 promptStr += insertion.content + " ";
             } else if insertion is ai:ImageDocument {
-                promptStr += check addImageContentPart(insertion);
+                images.push(check getImageBase64(insertion));
+                promptStr += "[img]";
             } else {
                 return error ai:Error("Only Text and Image Documents are currently supported.");
             }
@@ -117,7 +123,8 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns string|a
                 if doc is ai:TextDocument {
                     promptStr += doc.content + " ";
                 } else if doc is ai:ImageDocument {
-                    promptStr += check addImageContentPart(doc);
+                    images.push(check getImageBase64(doc));
+                    promptStr += "[img]";
                 } else {
                     return error ai:Error("Only Text and Image Documents are currently supported.");
                 }
@@ -129,24 +136,52 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns string|a
     }
 
     promptStr += addToolDirective();
-    return promptStr.trim();
+    return {text: promptStr.trim(), images};
 }
 
-isolated function addImageContentPart(ai:ImageDocument doc) returns string|ai:Error {
+isolated function getImageBase64(ai:ImageDocument doc) returns string|ai:Error {
     ai:Url|byte[] content = doc.content;
     if content is ai:Url {
         ai:Url|constraint:Error validationRes = constraint:validate(content);
         if validationRes is error {
             return error(validationRes.message(), validationRes.cause());
         }
-        return string ` ${content} `;
+        return content;
     }
 
-    return string ` ${content.toBase64()} `;
+    return content.toBase64();
 }
 
 isolated function addToolDirective() returns string {
-    return "\nYou must call the `getResults` tool to obtain the correct answer.";
+    return "\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+}
+
+// Extracts content from markdown code fences (```json ... ``` or ``` ... ```).
+// If multiple code blocks exist, the last one is used (models often put the actual 
+// result there). If no code fences are found, returns the original content.
+isolated function stripCodeFences(string content) returns string {
+    int? lastFenceStart = content.lastIndexOf("```");
+    if lastFenceStart is () {
+        return content;
+    }
+    // Find the second-to-last ``` which is the opening fence of the last block
+    string beforeLastFence = content.substring(0, lastFenceStart);
+    int? openFenceStart = beforeLastFence.lastIndexOf("```");
+    if openFenceStart is () {
+        return content;
+    }
+    string fencedBlock = content.substring(openFenceStart);
+    // Remove opening fence line (``` or ```json, etc.)
+    int? firstNewline = fencedBlock.indexOf("\n");
+    if firstNewline is () {
+        return content;
+    }
+    string inner = fencedBlock.substring(firstNewline + 1);
+    // Remove closing fence
+    if inner.endsWith("```") {
+        inner = inner.substring(0, inner.length() - 3);
+    }
+    return inner.trim();
 }
 
 isolated function handleParseResponseError(error chatResponseError) returns error {
@@ -163,10 +198,10 @@ isolated function generateLlmResponse(http:Client llmClient, string modelType,
     observe:GenerateContentSpan span = observe:createGenerateContentSpan(modelType);
     span.addProvider("ollama");
 
-    string content;
+    ChatContent chatContent;
     ResponseSchema responseSchema;
     do {
-        content = check generateChatCreationContent(prompt);
+        chatContent = check generateChatCreationContent(prompt);
         responseSchema = check getExpectedResponseSchema(expectedResponseTypedesc);
     } on fail ai:Error err {
         span.close(err);
@@ -174,7 +209,18 @@ isolated function generateLlmResponse(http:Client llmClient, string modelType,
     }
 
     map<json>[] tools = getGetResultsTool(responseSchema.schema);
-    map<json>[] messages = [{role: ai:USER, "content": content}];
+    // Ollama does not support `tool_choice` to force tool calls, unlike some other providers.
+    // A system message is used to nudge local models into calling the tool instead of
+    // responding with plain text.
+    map<json> systemMessage = {
+        role: ai:SYSTEM,
+        "content": string `You must always call the ${GET_RESULTS_TOOL} tool to submit your response. Never reply with plain text.`
+    };
+    map<json> userMessage = {role: ai:USER, "content": chatContent.text};
+    if chatContent.images.length() > 0 {
+        userMessage["images"] = chatContent.images;
+    }
+    map<json>[] messages = [systemMessage, userMessage];
     map<json> request = {
         messages,
         tools,
@@ -205,15 +251,26 @@ isolated function generateLlmResponse(http:Client llmClient, string modelType,
     }
 
     OllamaToolCall[]? toolCalls = response.message?.tool_calls;
-    if toolCalls is () || toolCalls.length() == 0 {
-        ai:Error err = error(NO_RELEVANT_RESPONSE_FROM_THE_LLM);
-        span.close(err);
-        return err;
+    string responseStr;
+    if toolCalls is OllamaToolCall[] && toolCalls.length() > 0 {
+        OllamaToolCall tool = toolCalls[0];
+        map<json> arguments = tool.'function.arguments;
+        responseStr = arguments.toJsonString();
+    } else {
+        // Fallback: when the model responds with text instead of a tool call,
+        // attempt to parse the content directly. This is common with smaller
+        // models that do not reliably use the tool-calling mechanism.
+        string content = stripCodeFences(response.message.content.trim());
+        if content == "" {
+            ai:Error err = error(NO_RELEVANT_RESPONSE_FROM_THE_LLM);
+            span.close(err);
+            return err;
+        }
+        responseStr = responseSchema.isOriginallyJsonObject ? content :
+            {[RESULT]: content}.toJsonString();
     }
 
-    OllamaToolCall tool = toolCalls[0];
-    map<json> arguments = tool.'function.arguments;
-    anydata|error res = parseResponseAsType(arguments.toJsonString(), expectedResponseTypedesc,
+    anydata|error res = parseResponseAsType(responseStr, expectedResponseTypedesc,
             responseSchema.isOriginallyJsonObject);
     if res is error {
         ai:Error err = error(string `Invalid value returned from the LLM Client, expected: '${

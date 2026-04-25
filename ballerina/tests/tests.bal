@@ -280,3 +280,28 @@ function testGenerateMethodWithArrayUnionRecord2() returns ai:Error? {
    Cricketers7[]|Cricketers8|error result = ollamaProvider->generate(`Name a random world class cricketer`);
     test:assertTrue(result is Cricketers8);
 }
+
+@test:Config
+function testFallbackPlainTextContent() returns ai:Error? {
+    string result = check ollamaProvider->generate(`What is the capital of France?`);
+    test:assertEquals(result, "Paris");
+}
+
+@test:Config
+function testFallbackJsonContent() returns error? {
+    Review result = check ollamaProvider->generate(`Review this restaurant in detail`);
+    test:assertEquals(result, {rating: 8, comment: "Great blog!"});
+}
+
+@test:Config
+function testFallbackCodeFenceContent() returns error? {
+    Review result = check ollamaProvider->generate(`Summarize and rate this article`);
+    test:assertEquals(result, {rating: 8, comment: "Great blog!"});
+}
+
+@test:Config
+function testFallbackEmptyContent() returns ai:Error? {
+    string|error result = ollamaProvider->generate(`Translate this to French`);
+    test:assertTrue(result is error);
+    test:assertEquals((<error>result).message(), "No relevant response from the LLM");
+}

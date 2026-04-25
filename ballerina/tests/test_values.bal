@@ -55,41 +55,41 @@ const reviewRecord = {
 
 final string expectedPromptStringForRateBlog = string `Rate this blog out of 10.
         Title: ${blog1.title}
-        Content: ${blog1.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        Content: ${blog1.content}${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog2 = string `Please rate this blog out of 10.
         Title: ${blog2.title}
-        Content: ${blog2.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        Content: ${blog2.content}${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
-const expectedPromptStringForRateBlog3 = string `What is 1 + 1?${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+const expectedPromptStringForRateBlog3 = string `What is 1 + 1?${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
-const expectedPromptStringForRateBlog4 = string `Tell me name and the age of the top 10 world class cricketers${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+const expectedPromptStringForRateBlog4 = string `Tell me name and the age of the top 10 world class cricketers${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog5 =
-        string `How would you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        string `How would you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog6 =
-        string `How would you rate this blog out of 10. Title: ${blog1.title} Content: ${blog1.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        string `How would you rate this blog out of 10. Title: ${blog1.title} Content: ${blog1.content}${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog7 =
         string `Please rate this blogs out of 10.
-        [{Title: ${blog1.title}, Content: ${blog1.content}}, {Title: ${blog2.title}, Content: ${blog2.content}}]${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        [{Title: ${blog1.title}, Content: ${blog1.content}}, {Title: ${blog2.title}, Content: ${blog2.content}}]${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog8 =
-    string `How would you rate this text blog out of 10, Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    string `How would you rate this text blog out of 10, Title: ${blog1.title} Content: ${blog1.content} .${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog9 = string
-    `How would you rate this text blogs out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    `How would you rate this text blogs out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog10 = string `Evaluate this blogs out of 10.
         Title: ${blog1.title}
         Content: ${blog1.content}
 
         Title: ${blog1.title}
-        Content: ${blog1.content}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        Content: ${blog1.content}${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 final string expectedPromptStringForRateBlog11 =
-        string `How do you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        string `How do you rate this blog content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 const expectedPromptStringForBalProgram = string `What's the output of the Ballerina code below?
 
@@ -101,9 +101,9 @@ const expectedPromptStringForBalProgram = string `What's the output of the Balle
         int y = 20;
         io:println(x + y);
     }
-    ${"```"}${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+    ${"```"}${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
-const expectedPromptStringForCountry = string `Which country is known as the pearl of the Indian Ocean?${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+const expectedPromptStringForCountry = string `Which country is known as the pearl of the Indian Ocean?${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
 
 const expectedParameterSchemaStringForRateBlog =
     {"type": "object", "properties": {"result": {"type": "integer"}}};

@@ -79,6 +79,22 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParamterSchemaStringForCountry;
     }
 
+    if message.startsWith("What is the capital of France?") {
+        return expectedParamterSchemaStringForCountry;
+    }
+
+    if message.startsWith("Review this restaurant") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
+    if message.startsWith("Summarize and rate this article") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
+    if message.startsWith("Translate this to French") {
+        return expectedParamterSchemaStringForCountry;
+    }
+
     if message.startsWith("Who is a popular sportsperson") {
         return {
             "type": "object",
@@ -349,56 +365,98 @@ isolated function getExpectedPrompt(string message) returns string {
     }
 
     if message.startsWith("Describe the following image.") {
-        return string `Describe the following image. ${sampleStringData} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        return "Describe the following image.[img].\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Describe this image.") {
-        return "Describe this image. https://example.com/sample-image.jpg .\nYou must call the `getResults` tool to obtain the correct answer.";
+        return "Describe this image.[img].\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Describe these images.") {
-        return string `Describe these images. ${sampleStringData}  https://example.com/sample-image.jpg .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        return "Describe these images.[img][img].\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
     
     if message.startsWith("Name 10 world class cricketers in India") {
-        return "Name 10 world class cricketers in India\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name 10 world class cricketers in India\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name 10 world class cricketers as string") {
-        return "Name 10 world class cricketers as string\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name 10 world class cricketers as string\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name 10 world class cricketers") {
-        return "Name 10 world class cricketers\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name 10 world class cricketers\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name top 10 world class cricketers") {
-        return "Name top 10 world class cricketers\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name top 10 world class cricketers\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name a random world class cricketer in India") {
-        return "Name a random world class cricketer in India\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name a random world class cricketer in India\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name a random world class cricketer") {
-        return "Name a random world class cricketer\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name a random world class cricketer\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Give me a random joke about cricketers") {
-        return "Give me a random joke about cricketers\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Give me a random joke about cricketers\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Give me a random joke") {
-        return "Give me a random joke\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Give me a random joke\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("What is the capital of France?") {
+        return "What is the capital of France?\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Review this restaurant") {
+        return "Review this restaurant in detail\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Summarize and rate this article") {
+        return "Summarize and rate this article\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Translate this to French") {
+        return "Translate this to French\nDo not respond with text. You must submit your response by calling the `getResults` tool.";
     }
 
     return "INVALID";
+}
+
+// Returns content for prompts that should simulate a content-only response (no tool call).
+// Returns nil for prompts that should use the normal tool-call path.
+isolated function getFallbackContent(string message) returns string? {
+    if message.startsWith("What is the capital of France?") {
+        return "Paris";
+    }
+    if message.startsWith("Review this restaurant") {
+        return "{\"rating\": 8, \"comment\": \"Great blog!\"}";
+    }
+    if message.startsWith("Summarize and rate this article") {
+        return "Here is the result:\n```json\n{\"rating\": 8, \"comment\": \"Great blog!\"}\n```";
+    }
+    if message.startsWith("Translate this to French") {
+        return "";
+    }
+    return ();
+}
+
+isolated function getExpectedImages(string message) returns string[][] {
+    if message.startsWith("Describe the following image.") {
+        return [[sampleStringData]];
+    }
+
+    if message.startsWith("Describe this image.") {
+        return [["https://example.com/sample-image.jpg"]];
+    }
+
+    if message.startsWith("Describe these images.") {
+        return [[sampleStringData, "https://example.com/sample-image.jpg"]];
+    }
+
+    return [];
 }
