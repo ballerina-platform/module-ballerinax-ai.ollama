@@ -25,11 +25,24 @@ service /llm on new http:Listener(8080) {
                 "num_ctx":2048, "repeat_last_n":64, "repeat_penalty":1.1d, "temperature":0.8d, "seed":11,
                 "num_predict":-1, "top_k":40, "top_p":0.9d, "min_p":0d});
         json[] messages = check payload.messages.ensureType();
-        json message = messages[0];
+        test:assertEquals(messages.length(), 2, "Expected system, user");
+        test:assertEquals(messages[0].role, "system");
 
+        json message = messages[1];
         string content = check message.content.ensureType();
         test:assertEquals(content, getExpectedPrompt(content));
         test:assertEquals(message.role, "user");
+
+        string[][] expectedImages = getExpectedImages(content);
+        if expectedImages.length() > 0 {
+            json[] images = check message.images.ensureType();
+            test:assertEquals(images.length(), expectedImages[0].length(),
+                "Unexpected number of images in the payload");
+            foreach int i in 0 ..< expectedImages[0].length() {
+                test:assertEquals(images[i], expectedImages[0][i]);
+            }
+        }
+
         json[] tools = check payload.tools.ensureType();
         if tools.length() == 0 {
             test:assertFail("No tools in the payload");
@@ -39,6 +52,15 @@ service /llm on new http:Listener(8080) {
         map<json> parameters = check (tool.'function?.parameters).ensureType();
 
         test:assertEquals(parameters, getExpectedParameterSchema(content), string `Test failed for prompt:- ${content}`);
+
+        // Simulate models that respond with content instead of tool calls
+        string? fallbackContent = getFallbackContent(content);
+        if fallbackContent is string {
+            return {
+                model: "llama2",
+                message: {content: fallbackContent, role: "assistant"}
+            };
+        }
         return getTestServiceResponse(content);
     }
 }
