@@ -16,7 +16,6 @@
 
 import ballerina/ai;
 import ballerina/ai.observe;
-import ballerina/constraint;
 import ballerina/http;
 
 type ResponseSchema record {|
@@ -142,11 +141,9 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns ChatCont
 isolated function getImageBase64(ai:ImageDocument doc) returns string|ai:Error {
     ai:Url|byte[] content = doc.content;
     if content is ai:Url {
-        ai:Url|constraint:Error validationRes = constraint:validate(content);
-        if validationRes is error {
-            return error(validationRes.message(), validationRes.cause());
-        }
-        return content;
+        return error(
+            "Ollama does not support URL-based images. " +
+            "Please provide the image as a byte array.");
     }
 
     return content.toBase64();

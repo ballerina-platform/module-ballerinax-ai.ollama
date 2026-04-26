@@ -55,14 +55,6 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParameterSchemaStringForRateBlog9;
     }
 
-    if message.startsWith("Describe this image.") {
-        return expectedParameterSchemaStringForRateBlog9;
-    }
-
-    if message.startsWith("Describe these images.") {
-        return expectedParameterSchemaStringForRateBlog8;
-    }
-
     if message.startsWith("How do you rate this blog") {
         return expectedParameterSchemaStringForRateBlog7;
     }
@@ -248,14 +240,6 @@ isolated function getTheMockLLMResult(string message) returns map<json> {
         return {"result": "This is a sample image description."};
     }
 
-    if message.startsWith("Describe this image.") {
-        return {"result": "This is a sample image description."};
-    }
-
-    if message.startsWith("Describe these images.") {
-        return {"result": ["This is a sample image description.", "This is a sample image description."]};
-    }
-    
     if message.startsWith("Name a random world class cricketer in India") {
         return {"result": {"name": "Sanga"}};
     }
@@ -386,16 +370,6 @@ isolated function getExpectedPrompt(string message) returns string {
         "You must submit your response by calling the `getResults` tool.";
     }
 
-    if message.startsWith("Describe this image.") {
-        return "Describe this image.[img].\nDo not respond with text. " +
-        "You must submit your response by calling the `getResults` tool.";
-    }
-
-    if message.startsWith("Describe these images.") {
-        return "Describe these images.[img][img].\nDo not respond with text. " +
-        "You must submit your response by calling the `getResults` tool.";
-    }
-    
     if message.startsWith("Name 10 world class cricketers in India") {
         return "Name 10 world class cricketers in India\nDo not respond with text. " +
         "You must submit your response by calling the `getResults` tool.";
@@ -516,14 +490,6 @@ isolated function getFallbackContent(string message) returns string? {
 isolated function getExpectedImages(string message) returns string[][] {
     if message.startsWith("Describe the following image.") {
         return [[sampleStringData]];
-    }
-
-    if message.startsWith("Describe this image.") {
-        return [["https://example.com/sample-image.jpg"]];
-    }
-
-    if message.startsWith("Describe these images.") {
-        return [[sampleStringData, "https://example.com/sample-image.jpg"]];
     }
 
     return [];

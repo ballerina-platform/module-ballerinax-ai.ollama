@@ -133,24 +133,17 @@ function testGenerateMethodWithImageDocument() returns ai:Error? {
         content: "https://example.com/sample-image.jpg"
     };
 
-    ai:ImageDocument img3 = {
-        content: "<invalid-url>"
-    };
-
-    string|error description = ollamaProvider->generate(`Describe the following image.${img}.`);
+    string|error description =
+        ollamaProvider->generate(`Describe the following image.${img}.`);
     test:assertEquals(description, "This is a sample image description.");
 
+    // Ollama does not support URL-based images
     description = ollamaProvider->generate(`Describe this image.${img2}.`);
-    test:assertEquals(description, "This is a sample image description.");
-
-    string[]|error descriptions = ollamaProvider->generate(`Describe these images.${<ai:ImageDocument[]>[img, img2]}.`);
-    test:assertEquals(descriptions, ["This is a sample image description.", "This is a sample image description."]);
-
-    description = ollamaProvider->generate(`Describe this image. ${img3}.`);
-    if description is string {
-        test:assertFail();
+    if description !is error {
+        test:assertFail("Expected error for URL-based image");
     }
-    test:assertEquals(description.message(), "Must be a valid URL.");
+    test:assertTrue(description.message().includes(
+        "Ollama does not support URL-based images"));
 }
 
 @test:Config
@@ -169,8 +162,10 @@ function testGenerateMethodWithInvalidDocument() returns ai:Error? {
 @test:Config
 function testGenerateMethodWithInvalidBasicType() returns ai:Error? {
     boolean|error rating = ollamaProvider->generate(`What is ${1} + ${1}?`);
-    test:assertTrue(rating is error);
-    test:assertTrue((<error>rating).message().includes(ERROR_MESSAGE));
+    if rating !is error {
+        test:assertFail("Expected error for unsupported type");
+    }
+    test:assertTrue(rating.message().includes(ERROR_MESSAGE));
 }
 
 type ProductName record {|
@@ -181,10 +176,13 @@ type ProductName record {|
 function testGenerateMethodWithInvalidRecordType() returns ai:Error? {
     ProductName[]|map<string>|error rating = trap ollamaProvider->generate(
                 `Tell me name and the age of the top 10 world class cricketers`);
-    string msg = (<error>rating).message();
-    test:assertTrue(rating is error);
-    test:assertTrue(msg.includes(RUNTIME_SCHEMA_NOT_SUPPORTED_ERROR_MESSAGE),
-        string `expected error message to contain: ${RUNTIME_SCHEMA_NOT_SUPPORTED_ERROR_MESSAGE}, but found ${msg}`);
+    if rating !is error {
+        test:assertFail("Expected error for unsupported type");
+    }
+    test:assertTrue(rating.message().includes(RUNTIME_SCHEMA_NOT_SUPPORTED_ERROR_MESSAGE),
+        string `expected error message to contain: ${
+            RUNTIME_SCHEMA_NOT_SUPPORTED_ERROR_MESSAGE
+        }, but found ${rating.message()}`);
 }
 
 type ProductNameArray ProductName[];
@@ -193,8 +191,10 @@ type ProductNameArray ProductName[];
 function testGenerateMethodWithInvalidRecordArrayType2() returns ai:Error? {
     ProductNameArray|error rating = ollamaProvider->generate(
                 `Tell me name and the age of the top 10 world class cricketers`);
-    test:assertTrue(rating is error);
-    test:assertTrue((<error>rating).message().includes(ERROR_MESSAGE));
+    if rating !is error {
+        test:assertFail("Expected error for unsupported type");
+    }
+    test:assertTrue(rating.message().includes(ERROR_MESSAGE));
 }
 
 type Cricketers record {|
@@ -330,6 +330,8 @@ function testFallbackBooleanType() returns ai:Error? {
 @test:Config
 function testFallbackEmptyContent() returns ai:Error? {
     string|error result = ollamaProvider->generate(`Translate this to French`);
-    test:assertTrue(result is error);
-    test:assertEquals((<error>result).message(), "No relevant response from the LLM");
+    if result !is error {
+        test:assertFail("Expected error for empty content");
+    }
+    test:assertEquals(result.message(), "No relevant response from the LLM");
 }
