@@ -83,6 +83,10 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParameterSchemaStringForRateBlog2;
     }
 
+    if message.startsWith("Summarize and rate this blog post") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
     if message.startsWith("List three numbers") {
         return expectedParameterSchemaStringForRateBlog6;
     }
@@ -425,6 +429,12 @@ isolated function getExpectedPrompt(string message) returns string {
         "You must submit your response by calling the `getResults` tool.";
     }
 
+    if message.startsWith("Summarize and rate this blog post") {
+        return "Summarize and rate this blog post\nDo not respond" +
+        " with text. You must submit your response by calling" +
+        " the `getResults` tool.";
+    }
+
     if message.startsWith("List three numbers") {
         return "List three numbers between 1 and 5\nDo not respond" +
         " with text. You must submit your response by calling" +
@@ -467,7 +477,13 @@ isolated function getFallbackContent(string message) returns string? {
         return "{\"rating\": 8, \"comment\": \"Great blog!\"}";
     }
     if message.startsWith("Summarize and rate this article") {
-        return "Here is the result:\n```json\n{\"rating\": 8, \"comment\": \"Great blog!\"}\n```";
+        return "Here is the result:\n```json\n" +
+        "{\"rating\": 8, \"comment\": \"Great blog!\"}\n```";
+    }
+    if message.startsWith("Summarize and rate this blog post") {
+        return "Here is the result:\n```json\n" +
+        "{\"rating\": 8, \"comment\": \"Great blog!\"}\n" +
+        "```\nHope that helps!";
     }
     if message.startsWith("List three numbers") {
         return "[1, 3, 5]";

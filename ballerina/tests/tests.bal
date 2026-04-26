@@ -133,8 +133,7 @@ function testGenerateMethodWithImageDocument() returns ai:Error? {
         content: "https://example.com/sample-image.jpg"
     };
 
-    string|error description =
-        ollamaProvider->generate(`Describe the following image.${img}.`);
+    string|error description = ollamaProvider->generate(`Describe the following image.${img}.`);
     test:assertEquals(description, "This is a sample image description.");
 
     // Ollama does not support URL-based images
@@ -300,6 +299,13 @@ function testFallbackCodeFenceContent() returns error? {
 }
 
 @test:Config
+function testFallbackCodeFenceWithTrailingText() returns error? {
+    Review result = check ollamaProvider->generate(
+        `Summarize and rate this blog post`);
+    test:assertEquals(result, {rating: 8, comment: "Great blog!"});
+}
+
+@test:Config
 function testFallbackIntArrayType() returns ai:Error? {
     int[] result = check ollamaProvider->generate(
         `List three numbers between 1 and 5`);
@@ -322,8 +328,7 @@ function testFallbackFloatType() returns ai:Error? {
 
 @test:Config
 function testFallbackBooleanType() returns ai:Error? {
-    boolean result = check ollamaProvider->generate(
-        `Is the earth round`);
+    boolean result = check ollamaProvider->generate(`Is the earth round`);
     test:assertEquals(result, true);
 }
 

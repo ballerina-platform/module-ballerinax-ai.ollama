@@ -167,18 +167,14 @@ isolated function stripCodeFences(string content) returns string {
     if openFenceStart is () {
         return content;
     }
-    string fencedBlock = content.substring(openFenceStart);
+    // Limit to the closing fence so trailing prose is excluded.
+    string fencedBlock = content.substring(openFenceStart, lastFenceStart);
     // Remove opening fence line (``` or ```json, etc.)
     int? firstNewline = fencedBlock.indexOf("\n");
     if firstNewline is () {
         return content;
     }
-    string inner = fencedBlock.substring(firstNewline + 1);
-    // Remove closing fence
-    if inner.endsWith("```") {
-        inner = inner.substring(0, inner.length() - 3);
-    }
-    return inner.trim();
+    return fencedBlock.substring(firstNewline + 1).trim();
 }
 
 isolated function handleParseResponseError(error chatResponseError) returns error {
