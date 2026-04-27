@@ -84,7 +84,7 @@ isolated function getGetResultsTool(map<json> parameters) returns map<json>[] =>
         'function: {
             name: GET_RESULTS_TOOL,
             parameters: parameters,
-            description: "Submit the final answer. Call this tool with your response in the result field."
+            description: "Tool to call to submit the final answer."
         }
     }
 ];
