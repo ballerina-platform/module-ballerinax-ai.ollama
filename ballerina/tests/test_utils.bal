@@ -55,14 +55,6 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return expectedParameterSchemaStringForRateBlog9;
     }
 
-    if message.startsWith("Describe this image.") {
-        return expectedParameterSchemaStringForRateBlog9;
-    }
-
-    if message.startsWith("Describe these images.") {
-        return expectedParameterSchemaStringForRateBlog8;
-    }
-
     if message.startsWith("How do you rate this blog") {
         return expectedParameterSchemaStringForRateBlog7;
     }
@@ -76,6 +68,43 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
     }
 
     if message.startsWith("Which country") {
+        return expectedParamterSchemaStringForCountry;
+    }
+
+    if message.startsWith("What is the capital of France?") {
+        return expectedParamterSchemaStringForCountry;
+    }
+
+    if message.startsWith("Review this restaurant") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
+    if message.startsWith("Summarize and rate this article") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
+    if message.startsWith("Summarize and rate this blog post") {
+        return expectedParameterSchemaStringForRateBlog2;
+    }
+
+    if message.startsWith("List three numbers") {
+        return expectedParameterSchemaStringForRateBlog6;
+    }
+
+    if message.startsWith("How many continents") {
+        return expectedParameterSchemaStringForRateBlog;
+    }
+
+    if message.startsWith("What is the value of pi") {
+        return {"type": "object", "properties": {
+            "result": {"type": "number"}}};
+    }
+
+    if message.startsWith("Is the earth round") {
+        return expectedParameterSchemaStringForRateBlog3;
+    }
+
+    if message.startsWith("Translate this to French") {
         return expectedParamterSchemaStringForCountry;
     }
 
@@ -215,14 +244,6 @@ isolated function getTheMockLLMResult(string message) returns map<json> {
         return {"result": "This is a sample image description."};
     }
 
-    if message.startsWith("Describe this image.") {
-        return {"result": "This is a sample image description."};
-    }
-
-    if message.startsWith("Describe these images.") {
-        return {"result": ["This is a sample image description.", "This is a sample image description."]};
-    }
-    
     if message.startsWith("Name a random world class cricketer in India") {
         return {"result": {"name": "Sanga"}};
     }
@@ -349,56 +370,143 @@ isolated function getExpectedPrompt(string message) returns string {
     }
 
     if message.startsWith("Describe the following image.") {
-        return string `Describe the following image. ${sampleStringData} .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
+        return "Describe the following image.[img].\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
-    if message.startsWith("Describe this image.") {
-        return "Describe this image. https://example.com/sample-image.jpg .\nYou must call the `getResults` tool to obtain the correct answer.";
-    }
-
-    if message.startsWith("Describe these images.") {
-        return string `Describe these images. ${sampleStringData}  https://example.com/sample-image.jpg .${"\n"}You must call the ${"`"}getResults${"`"} tool to obtain the correct answer.`;
-    }
-    
     if message.startsWith("Name 10 world class cricketers in India") {
-        return "Name 10 world class cricketers in India\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name 10 world class cricketers in India\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name 10 world class cricketers as string") {
-        return "Name 10 world class cricketers as string\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name 10 world class cricketers as string\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name 10 world class cricketers") {
-        return "Name 10 world class cricketers\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name 10 world class cricketers\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name top 10 world class cricketers") {
-        return "Name top 10 world class cricketers\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name top 10 world class cricketers\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name a random world class cricketer in India") {
-        return "Name a random world class cricketer in India\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name a random world class cricketer in India\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Name a random world class cricketer") {
-        return "Name a random world class cricketer\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Name a random world class cricketer\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Give me a random joke about cricketers") {
-        return "Give me a random joke about cricketers\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Give me a random joke about cricketers\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     if message.startsWith("Give me a random joke") {
-        return "Give me a random joke\nYou must call the `getResults`" +
-        " tool to obtain the correct answer.";
+        return "Give me a random joke\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("What is the capital of France?") {
+        return "What is the capital of France?\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Review this restaurant") {
+        return "Review this restaurant in detail\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Summarize and rate this article") {
+        return "Summarize and rate this article\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Summarize and rate this blog post") {
+        return "Summarize and rate this blog post\nDo not respond" +
+        " with text. You must submit your response by calling" +
+        " the `getResults` tool.";
+    }
+
+    if message.startsWith("List three numbers") {
+        return "List three numbers between 1 and 5\nDo not respond" +
+        " with text. You must submit your response by calling" +
+        " the `getResults` tool.";
+    }
+
+    if message.startsWith("How many continents") {
+        return "How many continents are there\nDo not respond" +
+        " with text. You must submit your response by calling" +
+        " the `getResults` tool.";
+    }
+
+    if message.startsWith("What is the value of pi") {
+        return "What is the value of pi to 2 decimals\nDo not" +
+        " respond with text. You must submit your response by" +
+        " calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Is the earth round") {
+        return "Is the earth round\nDo not respond with text. " +
+        "You must submit your response by calling the " +
+        "`getResults` tool.";
+    }
+
+    if message.startsWith("Translate this to French") {
+        return "Translate this to French\nDo not respond with text. " +
+        "You must submit your response by calling the `getResults` tool.";
     }
 
     return "INVALID";
+}
+
+// Returns content for prompts that should simulate a content-only response (no tool call).
+// Returns nil for prompts that should use the normal tool-call path.
+isolated function getFallbackContent(string message) returns string? {
+    if message.startsWith("What is the capital of France?") {
+        return "Paris";
+    }
+    if message.startsWith("Review this restaurant") {
+        return "{\"rating\": 8, \"comment\": \"Great blog!\"}";
+    }
+    if message.startsWith("Summarize and rate this article") {
+        return "Here is the result:\n```json\n" +
+        "{\"rating\": 8, \"comment\": \"Great blog!\"}\n```";
+    }
+    if message.startsWith("Summarize and rate this blog post") {
+        return "Here is the result:\n```json\n" +
+        "{\"rating\": 8, \"comment\": \"Great blog!\"}\n" +
+        "```\nHope that helps!";
+    }
+    if message.startsWith("List three numbers") {
+        return "[1, 3, 5]";
+    }
+    if message.startsWith("How many continents") {
+        return "7";
+    }
+    if message.startsWith("What is the value of pi") {
+        return "3.14";
+    }
+    if message.startsWith("Is the earth round") {
+        return "true";
+    }
+    if message.startsWith("Translate this to French") {
+        return "";
+    }
+    return ();
+}
+
+isolated function getExpectedImages(string message) returns string[][] {
+    if message.startsWith("Describe the following image.") {
+        return [[sampleStringData]];
+    }
+
+    return [];
 }
