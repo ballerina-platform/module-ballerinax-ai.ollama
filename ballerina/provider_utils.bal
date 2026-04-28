@@ -108,8 +108,8 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns ChatCont
         anydata insertion = insertions[i];
         string str = strings[i + 1];
 
-        if insertion is ai:Document {
-            if insertion is ai:TextDocument {
+        if insertion is ai:Document|ai:Chunk {
+            if insertion is ai:TextDocument|ai:TextChunk {
                 promptStr += insertion.content + " ";
             } else if insertion is ai:ImageDocument {
                 images.push(check getImageBase64(insertion));
@@ -117,9 +117,9 @@ isolated function generateChatCreationContent(ai:Prompt prompt) returns ChatCont
             } else {
                 return error ai:Error("Only Text and Image Documents are currently supported.");
             }
-        } else if insertion is ai:Document[] {
-            foreach ai:Document doc in insertion {
-                if doc is ai:TextDocument {
+        } else if insertion is (ai:Document|ai:Chunk)[] {
+            foreach ai:Document|ai:Chunk doc in insertion {
+                if doc is ai:TextDocument|ai:TextChunk {
                     promptStr += doc.content + " ";
                 } else if doc is ai:ImageDocument {
                     images.push(check getImageBase64(doc));

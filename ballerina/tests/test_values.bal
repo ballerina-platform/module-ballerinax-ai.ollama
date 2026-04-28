@@ -205,6 +205,12 @@ const expectedParamterSchemaStringForBalProgram =
 const expectedParamterSchemaStringForCountry =
     {"type": "object", "properties": {"result": {"type": "string"}}};
 
+final string expectedPromptStringForTextChunk =
+    string `Rate this text chunk content out of 10. Title: ${blog1.title} Content: ${blog1.content} .${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
+
+final string expectedPromptStringForTextChunkArray =
+    string `Rate these text chunks out of 10. Title: ${blog1.title} Content: ${blog1.content} Title: ${blog1.title} Content: ${blog1.content} . Thank you!${"\n"}Do not respond with text. You must submit your response by calling the ${"`"}getResults${"`"} tool.`;
+
 
 
 const expectedParamSchemaForArrayUnionNull =

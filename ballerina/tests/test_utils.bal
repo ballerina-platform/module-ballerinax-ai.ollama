@@ -140,6 +140,14 @@ isolated function getExpectedParameterSchema(string message) returns map<json> {
         return {"type":"object","properties":{"result":{"anyOf":[{"type":"string"},{"type":"null"}]}}};
     }
 
+    if message.startsWith("Rate these text chunks") {
+        return expectedParameterSchemaStringForRateBlog5;
+    }
+
+    if message.startsWith("Rate this text chunk") {
+        return expectedParameterSchemaStringForRateBlog;
+    }
+
     if message.startsWith("Name a random world class cricketer in India") {
         return expectedParameterSchemaForRecUnionNull;
     }
@@ -288,6 +296,17 @@ isolated function getTheMockLLMResult(string message) returns map<json> {
 
     if message.startsWith("Give me a random joke") {
         return {"result": "This is a random joke"};
+    }
+
+    if message.startsWith("Rate these text chunks") {
+        map<json>|error reviewResult = review.fromJsonStringWithType();
+        if reviewResult !is error {
+            return {"result": [reviewResult, reviewResult]};
+        }
+    }
+
+    if message.startsWith("Rate this text chunk") {
+        return {result: 4};
     }
 
     return {};
@@ -462,6 +481,14 @@ isolated function getExpectedPrompt(string message) returns string {
     if message.startsWith("Translate this to French") {
         return "Translate this to French\nDo not respond with text. " +
         "You must submit your response by calling the `getResults` tool.";
+    }
+
+    if message.startsWith("Rate these text chunks") {
+        return expectedPromptStringForTextChunkArray;
+    }
+
+    if message.startsWith("Rate this text chunk") {
+        return expectedPromptStringForTextChunk;
     }
 
     return "INVALID";
