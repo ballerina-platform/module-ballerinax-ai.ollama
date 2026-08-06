@@ -1,8 +1,6 @@
 ## Overview
 
-Ollama allows you to run open-source large language models (LLMs), such as Llama 3, Mistral, and Gemma, locally.
-
-The Ollama connector offers APIs for connecting with locally running Ollama models, enabling the integration of advanced conversational AI and language processing capabilities into applications.
+The `ai.ollama` module provides an Ollama-backed `ModelProvider` implementation for the [`ballerina/ai`](https://central.ballerina.io/ballerina/ai/latest) agent framework. Use it to drive open-source LLMs (Llama 3, Mistral, Gemma, and others) running locally through Ollama from Ballerina AI agents, keeping inference on your own infrastructure rather than a hosted API.
 
 ### Key Features
 
