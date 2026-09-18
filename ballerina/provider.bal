@@ -137,10 +137,10 @@ public isolated client class ModelProvider {
     # + messages - List of chat messages or user message
     # + tools - Tool definitions to be used for the tool call
     # + stop - Stop sequence to stop the completion
-    # + return - A stream of chat completion chunks, or an error in-case of failures
-    remote function chatStream(ai:ChatMessage[]|ai:ChatUserMessage messages,
+    # + return - A stream of chat message chunks, or an error in-case of failures
+    remote function chatAsStream(ai:ChatMessage[]|ai:ChatUserMessage messages,
             ai:ChatCompletionFunctions[] tools = [], string? stop = ())
-            returns stream<ai:ChatCompletionChunk, ai:Error?>|ai:Error {
+            returns stream<ai:ChatMessageChunk, ai:Error?>|ai:Error {
         observe:ChatSpan span = observe:createChatSpan(self.modelType);
         span.addProvider("ollama");
         if stop is string {
@@ -183,23 +183,25 @@ public isolated client class ModelProvider {
         }
         // The span outlives this call: it stays open for as long as the stream is
         // being consumed, and the iterator closes it once the stream ends.
-        stream<ai:ChatCompletionChunk, ai:Error?> chunkStream = new (new OllamaChunkIterator(byteStream, span));
+        stream<ai:ChatMessageChunk, ai:Error?> chunkStream = new (new OllamaChunkIterator(byteStream, span));
         return chunkStream;
     }
 
     # Sends a streaming chat request to the model using the given prompt and streams
-    # back the generated answer. Only `string` is supported as the expected type.
+    # back the generated answer as text fragments.
     #
-    # As with `chatStream`, a long generation can outlive the client's default timeout;
+    # Streaming produces text only: structured types have no valid intermediate state,
+    # so use `generate` for structured output.
+    #
+    # As with `chatAsStream`, a long generation can outlive the client's default timeout;
     # raise `timeout` in the connection configuration when that is a risk.
     #
     # + prompt - The prompt to use in the chat request
-    # + td - The expected type of the streamed value; must be `string`
-    # + return - A stream of the generated value, or an error if the type is unsupported
-    remote function generateStream(ai:Prompt prompt, @display {label: "Expected type"} typedesc<anydata> td = <>)
-            returns stream<td, ai:Error?>|ai:Error = @java:Method {
-        'class: "io.ballerina.lib.ai.ollama.StreamGenerator"
-    } external;
+    # + return - A stream of text fragments, or an error in-case of failures
+    remote function generateAsStream(ai:Prompt prompt) returns stream<string, ai:Error?>|ai:Error {
+        stream<ai:ChatMessageChunk, ai:Error?> chunks = check self->chatAsStream({role: ai:USER, content: prompt});
+        return new stream<string, ai:Error?>(new ChunkTextIterator(chunks));
+    }
 
     private isolated function prepareRequestPayload(ai:ChatMessage[]|ai:ChatUserMessage messages,
             ai:ChatCompletionFunctions[] tools, string? stop, boolean 'stream = false) returns json|ai:Error {
@@ -343,7 +345,7 @@ final byte NEWLINE = 10;
 const int MAX_BUFFERED_LINE_BYTES = 10 * 1024 * 1024;
 
 # Iterator that converts Ollama's newline-delimited JSON stream into a stream of
-# normalized `ai:ChatCompletionChunk` values.
+# normalized `ai:ChatMessageChunk` values.
 #
 # Unlike the Server-Sent Event streams of OpenAI-compatible APIs, Ollama writes
 # one bare JSON object per line with no framing and no end sentinel; the terminal
@@ -363,14 +365,13 @@ class OllamaChunkIterator {
     private boolean byteStreamClosed = false;
     private int nextToolCallIndex = 0;
     private boolean sawToolCalls = false;
-    private boolean roleEmitted = false;
 
     isolated function init(stream<byte[], error?> byteStream, observe:ChatSpan span) {
         self.byteStream = byteStream;
         self.span = span;
     }
 
-    public isolated function next() returns record {|ai:ChatCompletionChunk value;|}|ai:Error? {
+    public isolated function next() returns record {|ai:ChatMessageChunk value;|}|ai:Error? {
         if self.streamComplete {
             return ();
         }
@@ -416,17 +417,19 @@ class OllamaChunkIterator {
                 self.nextToolCallIndex += toolCalls.length();
                 self.sawToolCalls = true;
             }
-            // Ollama stamps the role on every chunk; the normalized type carries it
-            // on the first delta only.
-            boolean emitRole = !self.roleEmitted;
-            self.roleEmitted = true;
 
-            ai:ChatCompletionChunk aiChunk = toAiChunk(chunk, toolCallIndexOffset, self.sawToolCalls, emitRole);
+            ai:ChatMessageChunk aiChunk = toAiChunk(chunk, toolCallIndexOffset, self.sawToolCalls);
             if chunk.done {
                 // The terminal chunk is still handed to the caller; only the span and
                 // the connection behind it are released.
-                self.recordCompletion(aiChunk);
+                self.recordCompletion(chunk, aiChunk.finishReason);
                 self.terminate();
+                return {value: aiChunk};
+            }
+            // Skip events that carry nothing for the caller, such as a chunk whose
+            // `content`/`thinking`/`tool_calls` are all empty.
+            if aiChunk.content is () && aiChunk.reasoning is () && aiChunk.toolCalls is () {
+                continue;
             }
             return {value: aiChunk};
         }
@@ -448,28 +451,23 @@ class OllamaChunkIterator {
     }
 
     # Records the telemetry Ollama reports only on the terminal chunk, before the
-    # span is closed.
+    # span is closed. The normalized `ai:ChatMessageChunk` carries neither the
+    # response model nor token usage, so both are read off the raw wire chunk.
     #
-    # + chunk - The normalized terminal chunk
-    private isolated function recordCompletion(ai:ChatCompletionChunk chunk) {
-        string? responseModel = chunk.model;
-        if responseModel is string {
-            self.span.addResponseModel(responseModel);
-        }
-        ai:FinishReason? finishReason = chunk.choices[0].finishReason;
+    # + chunk - The raw terminal chunk
+    # + finishReason - The normalized finish reason mapped from `chunk`
+    private isolated function recordCompletion(OllamaChatStreamResponse chunk, ai:FinishReason? finishReason) {
+        self.span.addResponseModel(chunk.model);
         if finishReason is ai:FinishReason {
             self.span.addFinishReason(finishReason);
         }
-        ai:CompletionTokenUsage? usage = chunk.usage;
-        if usage is ai:CompletionTokenUsage {
-            int? promptTokens = usage.promptTokens;
-            if promptTokens is int {
-                self.span.addInputTokenCount(promptTokens);
-            }
-            int? completionTokens = usage.completionTokens;
-            if completionTokens is int {
-                self.span.addOutputTokenCount(completionTokens);
-            }
+        int? promptTokens = chunk?.prompt_eval_count;
+        if promptTokens is int {
+            self.span.addInputTokenCount(promptTokens);
+        }
+        int? completionTokens = chunk?.eval_count;
+        if completionTokens is int {
+            self.span.addOutputTokenCount(completionTokens);
         }
         self.span.addOutputType(observe:TEXT);
     }
@@ -553,51 +551,26 @@ isolated function decodeLine(byte[] lineBytes) returns string|ai:Error {
     return line;
 }
 
-# Builds the string stream returned by `ModelProvider.generateStream`. The native
-# `StreamGenerator` shim trampolines here so the type gating stays in Ballerina.
-# Only `string` is supported; other types yield an error because a partial
-# generation is a valid value only for `string`. When valid, the underlying
-# `chatStream` chunks are projected onto their text fragments.
-#
-# + llmModel - The model provider whose `chatStream` supplies the chunks
-# + prompt - The prompt to send to the model
-# + td - The caller's expected type; must be `string`
-# + return - A stream of text fragments, or an error if the type is unsupported
-function generateLlmResponseStream(ModelProvider llmModel, ai:Prompt prompt, typedesc<anydata> td)
-        returns stream<string, ai:Error?>|ai:Error {
-    if td !is typedesc<string> {
-        return error ai:Error("This data type is not supported for streaming. " +
-            "'generateStream' supports only 'string'; use 'generate' for structured types.");
-    }
-    stream<ai:ChatCompletionChunk, ai:Error?> chunks = check llmModel->chatStream({role: ai:USER, content: prompt});
-    stream<string, ai:Error?> textStream = new (new ChunkTextIterator(chunks));
-    return textStream;
-}
-
-# Projects a normalized `ai:ChatCompletionChunk` stream onto its text content,
-# yielding each non-empty `delta.content` fragment and skipping reasoning,
-# tool-call, and usage-only chunks. Backs `generateLlmResponseStream`.
+# Projects a normalized `ai:ChatMessageChunk` stream onto its answer text,
+# yielding each non-empty `content` fragment and skipping reasoning, tool-call
+# and finish-only chunks. Backs `ModelProvider.generateAsStream`.
 class ChunkTextIterator {
-    private stream<ai:ChatCompletionChunk, ai:Error?> chunks;
+    private stream<ai:ChatMessageChunk, ai:Error?> chunks;
 
-    isolated function init(stream<ai:ChatCompletionChunk, ai:Error?> chunks) {
+    isolated function init(stream<ai:ChatMessageChunk, ai:Error?> chunks) {
         self.chunks = chunks;
     }
 
     public isolated function next() returns record {|string value;|}|ai:Error? {
         while true {
-            record {|ai:ChatCompletionChunk value;|}|ai:Error? next = self.chunks.next();
+            record {|ai:ChatMessageChunk value;|}|ai:Error? next = self.chunks.next();
             if next is () {
                 return ();
             }
             if next is ai:Error {
                 return next;
             }
-            ai:ChatCompletionChunkChoice[] choices = next.value.choices;
-            if choices.length() == 0 {
-                continue;
-            }
-            string? content = choices[0].delta.content;
+            string? content = next.value.content;
             if content is string && content.length() > 0 {
                 return {value: content};
             }

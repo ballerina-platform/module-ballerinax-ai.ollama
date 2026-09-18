@@ -12,11 +12,11 @@ This module provides a generic API for connecting with Ollama LLM chat completio
 
 Alongside `chat` and `generate`, the provider supports streaming responses:
 
-- `chatStream` returns a `stream<ai:ChatCompletionChunk, ai:Error?>`, normalizing Ollama's
+- `chatAsStream` returns a `stream<ai:ChatMessageChunk, ai:Error?>`, normalizing Ollama's
   newline-delimited JSON onto the same chunk shape every `ballerina/ai` provider uses.
-- `generateStream` streams the generated answer as text fragments. Only `string` is
-  supported as the expected type — a partial generation is a valid value only for
-  `string`; use `generate` for structured types.
+- `generateAsStream` streams the generated answer as text fragments. Streaming produces
+  text only: structured types have no valid intermediate state, so use `generate` for
+  structured output.
 
 ```ballerina
 import ballerina/ai;
@@ -26,7 +26,7 @@ import ballerinax/ai.ollama;
 public function main() returns error? {
     ai:ModelProvider model = check new ollama:ModelProvider("llama3.2");
 
-    stream<string, ai:Error?> answer = check model->generateStream(`Explain streaming in one paragraph.`);
+    stream<string, ai:Error?> answer = check model->generateAsStream(`Explain streaming in one paragraph.`);
     check from string fragment in answer
         do {
             io:print(fragment);

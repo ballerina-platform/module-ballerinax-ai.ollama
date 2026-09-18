@@ -10,9 +10,9 @@ repository = "https://github.com/ballerina-platform/module-ballerinax-ai.ollama"
 version = "1.3.0"
 
 # TODO: drop `repository = "local"` once the `ai` streaming contract
-# (`chatStream`/`generateStream`) is released to Ballerina Central. The published
-# 1.13.0 does NOT carry it - this pin resolves a locally built bala, so CI cannot
-# build this branch until that release lands.
+# (`chatAsStream`/`generateAsStream`/`ChatMessageChunk`) is released to Ballerina Central.
+# The published 1.13.0 does NOT carry it - this pin resolves a locally built bala, so CI
+# cannot build this branch until that release lands.
 [[dependency]]
 org = "ballerina"
 name = "ai"

@@ -226,8 +226,10 @@ type OllamaChatStreamResponse record {
 
 // ── Wire → normalized mapping ──────────────────────────────────────────────
 // Projects an Ollama streamed chunk (the wire types above) onto the normalized
-// `ai:ChatCompletionChunk` that `chatStream` must return. Only the subset the
-// `ai` type can hold is mapped; timings and log probabilities are ignored.
+// `ai:ChatMessageChunk` that `chatAsStream` must return. Only the subset the
+// `ai` type can hold is mapped; timings, log probabilities and token counts are
+// reported straight to the span instead, since the normalized chunk type does
+// not carry them.
 
 # The `done_reason` Ollama reports when generation ended at a natural stop point
 # or a provided stop sequence.
@@ -236,58 +238,48 @@ const DONE_REASON_STOP = "stop";
 # The `done_reason` Ollama reports when generation hit the token limit.
 const DONE_REASON_LENGTH = "length";
 
-# Maps an Ollama streamed chunk onto the normalized `ai:ChatCompletionChunk`.
+# Maps an Ollama streamed chunk onto the normalized `ai:ChatMessageChunk`.
 #
 # Ollama differs from the OpenAI wire format in three ways that this mapping
 # smooths over:
-# - There is no `id`, so the normalized chunk carries only the model name.
+# - There is no response/message id, so the normalized chunk never carries one.
 # - Tool calls arrive fully formed (name plus a complete arguments object) rather
 #   than as argument fragments, and carry no index. The caller supplies a running
 #   `toolCallIndexOffset` so that fragments stay addressable by `index` in the
 #   same way as for providers that do split them, and the arguments object is
 #   serialized to the JSON string the normalized type expects.
-# - Ollama repeats the role on every chunk and reports `done_reason` "stop" even
-#   when the turn ended in tool calls, so the caller supplies the stream-level
-#   context needed to correct both.
+# - Ollama reports `done_reason` "stop" even when the turn ended in tool calls,
+#   so the caller supplies whether any tool call has been seen so far in the
+#   stream, to correct it to `tool_calls`.
 #
 # + chunk - The parsed Ollama chunk
 # + toolCallIndexOffset - Index to assign to the first tool call in this chunk
 # + sawToolCalls - Whether any tool call has been seen so far in this stream
-# + emitRole - Whether this is the first delta of the stream, which is the only
-#              one the normalized type carries a role on
 # + return - The normalized chunk consumed by the `ai` module
-isolated function toAiChunk(OllamaChatStreamResponse chunk, int toolCallIndexOffset, boolean sawToolCalls,
-        boolean emitRole) returns ai:ChatCompletionChunk {
+isolated function toAiChunk(OllamaChatStreamResponse chunk, int toolCallIndexOffset, boolean sawToolCalls)
+        returns ai:ChatMessageChunk {
     OllamaMessage message = chunk.message;
-    ai:ChatCompletionChunkDelta delta = {};
-    // The normalized type reserves `()` for a delta that carries no answer text;
-    // Ollama sends an empty string on tool-call and terminal chunks instead.
+    // The normalized type reserves `()` for a fragment that carries no answer
+    // text; Ollama sends an empty string on tool-call and terminal chunks instead.
     string content = message.content;
-    if content.length() > 0 {
-        delta.content = content;
-    }
-    ai:ROLE? role = mapRole(message.role);
-    if emitRole && role is ai:ROLE {
-        delta.role = role;
-    }
+    string? mappedContent = content.length() > 0 ? content : ();
+
     string? thinking = message?.thinking;
-    if thinking is string {
-        delta.reasoning = thinking;
-    }
+    string? reasoning = thinking is string && thinking.length() > 0 ? thinking : ();
+
+    ai:ToolCallChunk[]? toolCalls = ();
     OllamaToolCall[]? wireToolCalls = message?.tool_calls;
-    if wireToolCalls is OllamaToolCall[] {
-        ai:ToolCallChunk[] toolCalls = [];
+    if wireToolCalls is OllamaToolCall[] && wireToolCalls.length() > 0 {
+        ai:ToolCallChunk[] calls = [];
         foreach int i in 0 ..< wireToolCalls.length() {
             OllamaFunction 'function = wireToolCalls[i].'function;
-            toolCalls.push({
+            calls.push({
                 index: toolCallIndexOffset + i,
-                'function: {
-                    name: 'function.name,
-                    arguments: 'function.arguments.toJsonString()
-                }
+                name: 'function.name,
+                arguments: 'function.arguments.toJsonString()
             });
         }
-        delta.toolCalls = toolCalls;
+        toolCalls = calls;
     }
 
     ai:FinishReason? finishReason = ();
@@ -300,52 +292,7 @@ isolated function toAiChunk(OllamaChatStreamResponse chunk, int toolCallIndexOff
             : mapFinishReason(doneReason);
     }
 
-    ai:ChatCompletionChunk aiChunk = {
-        model: chunk.model,
-        choices: [{index: 0, delta, finishReason}]
-    };
-
-    // Token counts arrive only on the terminal chunk; Ollama reports the prompt
-    // and completion counts separately and no total, so the total is derived.
-    int? promptTokens = chunk?.prompt_eval_count;
-    int? completionTokens = chunk?.eval_count;
-    if promptTokens is int || completionTokens is int {
-        ai:CompletionTokenUsage usage = {};
-        if promptTokens is int {
-            usage.promptTokens = promptTokens;
-        }
-        if completionTokens is int {
-            usage.completionTokens = completionTokens;
-        }
-        if promptTokens is int && completionTokens is int {
-            usage.totalTokens = promptTokens + completionTokens;
-        }
-        aiChunk.usage = usage;
-    }
-    return aiChunk;
-}
-
-# Safely maps an Ollama message role onto the `ai:ROLE` enum; returns `()` for
-# roles the `ai` enum cannot represent rather than panicking on a cast.
-#
-# + role - The role from the wire message
-# + return - The mapped `ai:ROLE`, or `()` when unrepresentable
-isolated function mapRole(string role) returns ai:ROLE? {
-    // Streamed response messages only ever carry the "assistant" role;
-    // "system"/"user" are handled for completeness. Ollama's "tool" role has no
-    // counterpart in the `ai` enum, so it maps to `()`.
-    match role {
-        "system" => {
-            return ai:SYSTEM;
-        }
-        "user" => {
-            return ai:USER;
-        }
-        "assistant" => {
-            return ai:ASSISTANT;
-        }
-    }
-    return ();
+    return {role: ai:ASSISTANT, content: mappedContent, reasoning, toolCalls, finishReason};
 }
 
 # Safely maps an Ollama `done_reason` onto the `ai:FinishReason` enum. Ollama
