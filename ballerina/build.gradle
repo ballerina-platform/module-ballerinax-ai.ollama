@@ -111,6 +111,7 @@ clean {
 }
 
 build.dependsOn ':ai.ollama-native:build'
+test.dependsOn ':ai.ollama-native:build'
 build.dependsOn "generatePomFileForMavenPublication"
 build.dependsOn ":ai.ollama-compiler-plugin:build"
 publishToMavenLocal.dependsOn build
