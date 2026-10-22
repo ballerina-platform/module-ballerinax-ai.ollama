@@ -171,7 +171,22 @@ public isolated client class ModelProvider {
                     content: check getChatMessageStringContent(message.content)
                 });
             } else if message is ai:ChatAssistantMessage {
-                transformedMessages.push(message);
+                map<json> assistantMessage = {
+                    role: ai:ASSISTANT,
+                    content: message.content ?: ""
+                };
+                ai:FunctionCall[]? toolCalls = message.toolCalls;
+                if toolCalls is ai:FunctionCall[] && toolCalls.length() > 0 {
+                    json[] ollamaToolCalls = from ai:FunctionCall toolCall in toolCalls
+                        select <json>{
+                            'function: {
+                                name: toolCall.name,
+                                arguments: toolCall.arguments ?: {}
+                            }
+                        };
+                    assistantMessage["tool_calls"] = ollamaToolCalls;
+                }
+                transformedMessages.push(assistantMessage);
             }
         }
         return transformedMessages;

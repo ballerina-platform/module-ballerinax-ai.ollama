@@ -63,4 +63,31 @@ service /llm on new http:Listener(8080) {
         }
         return getTestServiceResponse(content);
     }
+
+    resource function post history/api/chat(map<json> payload)
+                returns OllamaResponse|error {
+        json[] messages = check payload.messages.ensureType();
+        test:assertEquals(messages.length(), 4, "Expected system, user, assistant, and tool messages");
+
+        map<json> assistantMessage = check messages[2].ensureType();
+        test:assertEquals(assistantMessage["role"], "assistant");
+        test:assertEquals(assistantMessage["content"], "");
+        test:assertFalse(assistantMessage.hasKey("toolCalls"),
+                "Assistant tool-call history must not use the ai:ChatAssistantMessage field name");
+
+        json[] toolCalls = check assistantMessage["tool_calls"].ensureType();
+        test:assertEquals(toolCalls.length(), 1);
+        map<json> toolCall = check toolCalls[0].ensureType();
+        map<json> functionCall = check toolCall["function"].ensureType();
+        test:assertEquals(functionCall["name"], "add");
+        test:assertEquals(functionCall["arguments"], {a: 12, b: 8});
+
+        test:assertEquals(messages[3].role, "tool");
+        test:assertEquals(messages[3].content, "20");
+
+        return {
+            model: "llama2",
+            message: {content: "465", role: "assistant"}
+        };
+    }
 }

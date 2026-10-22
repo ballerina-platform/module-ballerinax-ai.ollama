@@ -25,6 +25,23 @@ const RUNTIME_SCHEMA_NOT_SUPPORTED_ERROR_MESSAGE = "Runtime schema generation is
 final ModelProvider ollamaProvider = check new ("llama2", SERVICE_URL, {seed: 11});
 
 @test:Config
+function testAssistantToolCallHistorySerialization() returns error? {
+    ModelProvider chatProvider = check new ("llama2", SERVICE_URL + "/history", {seed: 11});
+    ai:ChatMessage[] messages = [
+        {role: ai:SYSTEM, content: "Use the provided tools."},
+        {role: ai:USER, content: "Calculate a multi-step expression."},
+        {
+            role: ai:ASSISTANT,
+            toolCalls: [{name: "add", arguments: {a: 12, b: 8}}]
+        },
+        {role: "function", name: "add", content: "20"}
+    ];
+
+    ai:ChatAssistantMessage response = check chatProvider->chat(messages, []);
+    test:assertEquals(response.content, "465");
+}
+
+@test:Config
 function testGenerateMethodWithBasicReturnType() returns ai:Error? {
     int|error rating = ollamaProvider->generate(`Rate this blog out of 10.
         Title: ${blog1.title}
